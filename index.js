@@ -31,12 +31,12 @@ module.exports = Base => {
 		cursorPage(cursor, reverse = false) {
 			const origBuilder = this.clone();
 
-			const orderByOps = [];
-			this._operations
+			const orderByOps = this._operations
 				.filter(op => op.name === 'orderBy')
-				.forEach(({args: [col, dir]}) => {
-					orderByOps.push({col, dir: (dir || 'asc').toLowerCase()});
-				});
+				.map(({args: [col, dir]}) => ({
+					col,
+					dir: (dir || 'asc').toLowerCase()
+				}));
 
 			if (reverse) {
 				this.clear('orderBy');
@@ -45,23 +45,17 @@ module.exports = Base => {
 				}
 			}
 
-			let first;
-			let last;
+			// Get partial first and last element from cursor
+			const [first, last] = deserializeCursor(orderByOps, cursor);
 
-			// Add where statements if a cursor is given
-			if (cursor) {
-				// Get partial first and last element from cursor
-				({first, last} = deserializeCursor(orderByOps, cursor));
-
-				// Do not add where statements in some cases so that we may go back after end of results
-				if ((reverse && first) || (!reverse && last)) {
-					addWhereStmts(this, orderByOps.map(({col, dir}) => ({
-						col,
-						// If reverse: asc  => desc, desc => asc
-						dir: reverse === (dir === 'asc') ? 'desc' : 'asc',
-						val: (reverse ? first : last)[col]
-					})));
-				}
+			// Do not add where statements in some cases so that we may go back after end of results
+			if ((reverse && first) || (!reverse && last)) {
+				addWhereStmts(this, orderByOps.map(({col, dir}) => ({
+					col,
+					// If reverse: asc  => desc, desc => asc
+					dir: reverse === (dir === 'asc') ? 'desc' : 'asc',
+					val: (reverse ? first : last)[col]
+				})));
 			}
 
 			return this
