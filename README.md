@@ -62,9 +62,7 @@ const query = Movie.query()
 
 # API
 
-#### Query building methods
-
-**`cursorPage([cursor, [reverse]])`**
+### `cursorPage([cursor, [reverse]])`
 
 - `cursor` - A serialized string used to determine after which element items should be returned.
 - `reverse` - When `true`, return items before the one specified in the cursor. Defaults to `false`.
@@ -81,10 +79,10 @@ const query = Movie.query()
 }
 ```
 
-**`nextCursorPage([cursor])`**
+### `nextCursorPage([cursor])`
 
 Alias for `cursorPage`, with `reverse: false`.
 
-**`previousCursorPage([cursor])`**
+### `previousCursorPage([cursor])`
 
 Alias for `cursorPage`, with `reverse: true`.
