@@ -185,5 +185,33 @@ describe('tests', () => {
 					expect(results).to.deep.equal(expected.slice(0, 5));
 				});
 		});
+
+		it('no results', () => {
+			const query = Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.where('id', '0');
+
+				return query.clone()
+					.then(res => {
+						expect(res).to.deep.equal([]);
+						return query.clone().cursorPage();
+					})
+					.then(res => {
+						expect(res.results).to.deep.equal([]);
+						return query.clone().cursorPage(res.pageInfo.cursor);
+					})
+					.then(res => {
+						expect(res.results).to.deep.equal([]);
+						return query.clone().previousCursorPage(res.pageInfo.cursor);
+					})
+					.then(res => {
+						expect(res.results).to.deep.equal([]);
+						return query.clone().previousCursorPage(res.pageInfo.cursor);
+					})
+					.then(res => {
+						expect(res.results).to.deep.equal([]);
+					});
+		});
 	});
 });
