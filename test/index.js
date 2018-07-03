@@ -181,7 +181,7 @@ describe('tests', () => {
 					expect(results).to.deep.equal([]);
 					return query.clone().limit(5).cursorPage(pageInfo.cursor);
 				})
-				.then(({results, pageInfo}) => {
+				.then(({results}) => {
 					expect(results).to.deep.equal(expected.slice(0, 5));
 				});
 		});

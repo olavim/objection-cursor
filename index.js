@@ -65,7 +65,7 @@ module.exports = Base => {
 			}
 
 			return this
-				.runAfter((models, builder) => {
+				.runAfter(models => {
 					// We want to always return results in the same order; as if turning pages in a book
 					if (reverse) {
 						models.reverse();

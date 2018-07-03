@@ -7,6 +7,9 @@
   "plugins": [
     "mocha"
   ],
+  "extends": [
+    "eslint:recommended"
+  ],
   "rules": {
     "mocha/no-exclusive-tests": "error",
     "no-console": "error"
