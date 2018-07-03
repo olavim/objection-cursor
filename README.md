@@ -64,7 +64,7 @@ const query = Movie.query()
 
 ### `cursorPage([cursor, [reverse]])`
 
-- `cursor` - A serialized string used to determine after which element items should be returned.
+- `cursor` - A serialized, **URL-safe** string used to determine after which element items should be returned.
 - `reverse` - When `true`, return items before the one specified in the cursor. Defaults to `false`.
 
 **Returns:**

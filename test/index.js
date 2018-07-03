@@ -14,16 +14,19 @@ function padStart(str, targetLength, padString) {
 
 const generateMovies = num => {
 	const d = new Date(2000, 1, 1, 0, 0, 0, 0);
-	return [...new Array(num)].map((_val, key) => {
+	const arr = [...new Array(num)].map((_val, key) => {
 		return {
 			title: `movie-${padStart(String(key % 15), 2, '0')}`,
 			author: `author-${key % 5}`,
-			date: new Date(d.getTime() + (key % 7)).toISOString()
+			// Add some null values
+			date: key % 3 === 0 ? null : new Date(d.getTime() + (key % 7)).toISOString()
 		};
 	});
+
+	return arr;
 };
 
-describe('tests', () => {
+describe('database tests', () => {
 	const knex = Knex({
 		client: 'sqlite3',
 		useNullAsDefault: true,
@@ -55,7 +58,7 @@ describe('tests', () => {
 		return knex.destroy();
 	});
 
-	describe('pagination tests', () => {
+	describe('cursor tests', () => {
 		function test(query, pages) {
 			let expected;
 			let perPage;
