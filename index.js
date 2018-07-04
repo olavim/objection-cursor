@@ -65,7 +65,6 @@ const mixin = options => {
 				// Get partial item from cursor
 				const item = deserializeCursor(orderByOps, cursor);
 
-				// Do not add where statements in some cases so that we may go back after end of results
 				if (item) {
 					addWhereStmts(this, orderByOps.map(({col, dir}) => ({
 						col,
@@ -87,14 +86,14 @@ const mixin = options => {
 						* there are no elements after the last one. If we go back from there, we get results for
 						* the last page. The opposite is true when going backward from the first page.
 						*/
-						const newFirst = models.length > 0 ? models[0] : (before ? item : null);
-						const newLast = models.length > 0 ? models[models.length - 1] : (before ? null : item);
+						const first = models.length > 0 ? models[0] : (before ? item : null);
+						const last = models.length > 0 ? models[models.length - 1] : (before ? null : item);
 
 						const res = {
 							results: models,
 							pageInfo: {
-								next: serializeCursor(orderByOps, newLast),
-								previous: serializeCursor(orderByOps, newFirst)
+								next: serializeCursor(orderByOps, last),
+								previous: serializeCursor(orderByOps, first)
 							}
 						};
 
