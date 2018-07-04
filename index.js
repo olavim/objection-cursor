@@ -68,7 +68,7 @@ const mixin = options => {
 				if (item) {
 					addWhereStmts(this, orderByOps.map(({col, dir}) => ({
 						col,
-						// If reverse: asc  => desc, desc => asc
+						// If going backward: asc => desc, desc => asc
 						dir: before === (dir === 'asc') ? 'desc' : 'asc',
 						val: item[col]
 					})));
