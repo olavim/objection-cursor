@@ -2,7 +2,8 @@
 
 const Knex = require('knex');
 const expect = require('chai').expect;
-const Movie = require('./fixtures/Movie');
+const Model = require('objection').Model;
+const cursorPagination = require('..');
 
 function padStart(str, targetLength, padString) {
 	let padded = str;
@@ -59,6 +60,21 @@ describe('database tests', () => {
 	});
 
 	describe('cursor tests', () => {
+		const cursor = cursorPagination({
+			pageInfo: {
+				total: true,
+				hasNext: true,
+				hasPrevious: true,
+				remaining: true
+			}
+		});
+
+		class Movie extends cursor(Model) {
+			static get tableName() {
+				return 'movies';
+			}
+		}
+
 		function test(query, pages) {
 			let expected;
 			let perPage;
@@ -149,42 +165,72 @@ describe('database tests', () => {
 					return query.clone().limit(5).cursorPage();
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(15);
 					expect(results).to.deep.equal(expected.slice(0, 5));
 					return query.clone().limit(5).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(10);
 					expect(results).to.deep.equal(expected.slice(5, 10));
 					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.false;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(0);
 					expect(results).to.deep.equal(expected.slice(10, 20));
 					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.false;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(0);
 					expect(results).to.deep.equal([]);
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.false;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(15);
 					expect(results).to.deep.equal(expected.slice(15, 20));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(10);
 					expect(results).to.deep.equal(expected.slice(10, 15));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(5);
 					expect(results).to.deep.equal(expected.slice(5, 10));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(0);
 					expect(results).to.deep.equal(expected.slice(0, 5));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(0);
 					expect(results).to.deep.equal([]);
 					return query.clone().limit(5).cursorPage(pageInfo.next);
 				})
-				.then(({results}) => {
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(15);
 					expect(results).to.deep.equal(expected.slice(0, 5));
 				});
 		});
@@ -215,6 +261,90 @@ describe('database tests', () => {
 					.then(res => {
 						expect(res.results).to.deep.equal([]);
 					});
+		});
+	});
+
+	describe('options tests', () => {
+		it('has total', () => {
+			class Movie extends cursorPagination({pageInfo: {total: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.then(({pageInfo}) => {
+					expect(pageInfo.total).to.equal(20);
+				});
+		});
+
+		it('has remaining', () => {
+			class Movie extends cursorPagination({pageInfo: {remaining: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.limit(10)
+				.then(({pageInfo}) => {
+					expect(pageInfo.remaining).to.equal(10);
+				});
+		});
+
+		it('has hasNext', () => {
+			class Movie extends cursorPagination({pageInfo: {hasNext: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.limit(10)
+				.then(({pageInfo}) => {
+					expect(pageInfo.hasNext).to.equal(true);
+				});
+		});
+
+		it('has hasPrevious', () => {
+			class Movie extends cursorPagination({pageInfo: {hasPrevious: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.then(({pageInfo}) => {
+					expect(pageInfo.hasPrevious).to.equal(false);
+				});
+		});
+
+		it('has limit', () => {
+			class Movie extends cursorPagination({limit: 10})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.then(({results}) => {
+					expect(results.length).to.equal(10);
+				});
 		});
 	});
 });
