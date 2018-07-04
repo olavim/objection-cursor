@@ -167,6 +167,6 @@ Values shown are defaults.
 **Notes:**
 
 - `pageInfo.total` requires an additional query.
-- `pageInfo.remaining` requires two additional queries. If `pageInfo.total` is true, only one additional query is needed.
-- `pageInfo.hasNext` requires the same queries as `pageInfo.remaining`.
-- `pageInfo.hasPrevious` requires the same queries as `pageInfo.remaining`.
+- `pageInfo.remaining` requires and additional query.
+- `pageInfo.hasNext` requires the same queries as `pageInfo.total` and `pageInfo.remaining`.
+- `pageInfo.hasPrevious` requires the same queries as `pageInfo.total` and `pageInfo.remaining`.
