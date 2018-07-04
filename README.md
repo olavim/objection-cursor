@@ -46,12 +46,12 @@ const query = Movie.query()
       // Rows 1-10
       console.log(result.results);
       console.log(result.pageInfo.total); // Total amount of rows (without limit)
-      return query.clone().cursorPage(result.pageInfo.cursor);
+      return query.clone().cursorPage(result.pageInfo.next);
     })
     .then(result => {
       // Rows 11-20
       console.log(result.results);
-      return query.clone().previousCursorPage(result.pageInfo.cursor);
+      return query.clone().previousCursorPage(result.pageInfo.previous);
     })
     .then(result => {
       // Rows 1-10
@@ -64,7 +64,7 @@ const query = Movie.query()
 
 ### `cursorPage([cursor, [reverse]])`
 
-- `cursor` - A serialized, **URL-safe** string used to determine after which element items should be returned.
+- `cursor` - A URL-safe string used to determine after/before which element items should be returned.
 - `reverse` - When `true`, return items before the one specified in the cursor. Defaults to `false`.
 
 **Returns:**
@@ -73,7 +73,8 @@ const query = Movie.query()
 {
   results: // Resulted rows
   pageInfo: {
-    cursor: // Use this string in the next `cursorPage` call
+    next: // Provide this in the next `cursorPage` call to fetch items after the last ones
+    previous: // Provide this in the next `previousCursorPage` call to fetch items before the last ones
     total: // Total number of rows (without limit)
   }
 }

@@ -28,7 +28,7 @@ function addWhereStmts(builder, ops, composites = []) {
 
 module.exports = Base => {
 	class CursorQueryBuilder extends Base.QueryBuilder {
-		cursorPage(cursor, reverse = false) {
+		cursorPage(cursor, before = false) {
 			const origBuilder = this.clone();
 
 			const orderByOps = this._operations
@@ -38,30 +38,30 @@ module.exports = Base => {
 					dir: (dir || 'asc').toLowerCase()
 				}));
 
-			if (reverse) {
+			if (before) {
 				this.clear('orderBy');
 				for (const {col, dir} of orderByOps) {
 					this.orderBy(col, dir === 'asc' ? 'desc' : 'asc');
 				}
 			}
 
-			// Get partial first and last element from cursor
-			const [first, last] = deserializeCursor(orderByOps, cursor);
+			// Get partial item from cursor
+			const item = deserializeCursor(orderByOps, cursor);
 
 			// Do not add where statements in some cases so that we may go back after end of results
-			if ((reverse && first) || (!reverse && last)) {
+			if (item) {
 				addWhereStmts(this, orderByOps.map(({col, dir}) => ({
 					col,
 					// If reverse: asc  => desc, desc => asc
-					dir: reverse === (dir === 'asc') ? 'desc' : 'asc',
-					val: (reverse ? first : last)[col]
+					dir: before === (dir === 'asc') ? 'desc' : 'asc',
+					val: item[col]
 				})));
 			}
 
 			return this
 				.runAfter(models => {
 					// We want to always return results in the same order; as if turning pages in a book
-					if (reverse) {
+					if (before) {
 						models.reverse();
 					}
 
@@ -70,17 +70,18 @@ module.exports = Base => {
 					 * there are no elements after the last one. If we go back from there, we get results for
 					 * the last page. The opposite is true when going backward from the first page.
 					 */
-					const newFirst = models.length > 0 ? models[0] : (reverse ? first : null);
-					const newLast = models.length > 0 ? models[models.length - 1] : (reverse ? null : last);
-
-					// Build new cursor
-					const cursor = serializeCursor(orderByOps, newFirst, newLast);
+					const newFirst = models.length > 0 ? models[0] : (before ? item : null);
+					const newLast = models.length > 0 ? models[models.length - 1] : (before ? null : item);
 
 					return origBuilder
 						.resultSize()
 						.then(total => ({
 							results: models,
-							pageInfo: {cursor, total}
+							pageInfo: {
+								next: serializeCursor(orderByOps, newLast),
+								previous: serializeCursor(orderByOps, newFirst),
+								total
+							}
 						}));
 				});
 		}

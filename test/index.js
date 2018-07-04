@@ -81,7 +81,7 @@ describe('database tests', () => {
 
 					page++;
 					expect(results.length).to.equal(perPage);
-					return query.clone().limit(perPage).cursorPage(pageInfo.cursor);
+					return query.clone().limit(perPage).cursorPage(pageInfo.next);
 				});
 			}
 
@@ -150,39 +150,39 @@ describe('database tests', () => {
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(0, 5));
-					return query.clone().limit(5).cursorPage(pageInfo.cursor);
+					return query.clone().limit(5).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(5, 10));
-					return query.clone().limit(10).cursorPage(pageInfo.cursor);
+					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(10, 20));
-					return query.clone().limit(10).cursorPage(pageInfo.cursor);
+					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal([]);
-					return query.clone().limit(5).previousCursorPage(pageInfo.cursor);
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(15, 20));
-					return query.clone().limit(5).previousCursorPage(pageInfo.cursor);
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(10, 15));
-					return query.clone().limit(5).previousCursorPage(pageInfo.cursor);
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(5, 10));
-					return query.clone().limit(5).previousCursorPage(pageInfo.cursor);
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(0, 5));
-					return query.clone().limit(5).previousCursorPage(pageInfo.cursor);
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal([]);
-					return query.clone().limit(5).cursorPage(pageInfo.cursor);
+					return query.clone().limit(5).cursorPage(pageInfo.next);
 				})
 				.then(({results}) => {
 					expect(results).to.deep.equal(expected.slice(0, 5));
@@ -202,15 +202,15 @@ describe('database tests', () => {
 					})
 					.then(res => {
 						expect(res.results).to.deep.equal([]);
-						return query.clone().cursorPage(res.pageInfo.cursor);
+						return query.clone().cursorPage(res.pageInfo.next);
 					})
 					.then(res => {
 						expect(res.results).to.deep.equal([]);
-						return query.clone().previousCursorPage(res.pageInfo.cursor);
+						return query.clone().previousCursorPage(res.pageInfo.previous);
 					})
 					.then(res => {
 						expect(res.results).to.deep.equal([]);
-						return query.clone().previousCursorPage(res.pageInfo.cursor);
+						return query.clone().previousCursorPage(res.pageInfo.previous);
 					})
 					.then(res => {
 						expect(res.results).to.deep.equal([]);
