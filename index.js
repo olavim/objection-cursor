@@ -45,8 +45,8 @@ const mixin = options => {
 				const origBuilder = this.clone();
 
 				if (!this.has('limit')) {
-          this.limit(options.limit);
-        }
+					this.limit(options.limit);
+				}
 
 				const orderByOps = this._operations
 					.filter(op => op.name === 'orderBy')
