@@ -3,6 +3,7 @@
 const Knex = require('knex');
 const expect = require('chai').expect;
 const Model = require('objection').Model;
+const {mapKeys, snakeCase, camelCase} = require('lodash');
 const cursorPagination = require('..');
 
 function padStart(str, targetLength, padString) {
@@ -18,6 +19,7 @@ const generateMovies = num => {
 	const arr = [...new Array(num)].map((_val, key) => {
 		return {
 			title: `movie-${padStart(String(key % 15), 2, '0')}`,
+			alt_title: `film-${padStart(String(key % 15), 2, '0')}`,
 			author: `author-${key % 5}`,
 			// Add some null values
 			date: key % 3 === 0 ? null : new Date(d.getTime() + (key % 7)).toISOString()
@@ -46,6 +48,7 @@ describe('database tests', () => {
 			table.string('title');
 			table.string('author');
 			table.dateTime('date');
+			table.string('alt_title');
 		});
 	});
 
@@ -261,6 +264,38 @@ describe('database tests', () => {
 					.then(res => {
 						expect(res.results).to.deep.equal([]);
 					});
+		});
+
+		it('handles column name mappers', () => {
+			class CaseMovie extends Movie {
+				$formatDatabaseJson(json) {
+					const formatted = super.$formatDatabaseJson(json);
+					return mapKeys(formatted, (val, key) => snakeCase(key));
+				}
+
+				$parseDatabaseJson(json) {
+					const parsed = super.$parseDatabaseJson(json);
+					return mapKeys(parsed, (val, key) => camelCase(key));
+				}
+			}
+
+			const query = CaseMovie
+				.query(knex)
+				.orderBy('alt_title')
+				.orderBy('id', 'asc')
+				.limit(5);
+
+			let expected;
+
+			return query.clone()
+				.then(res => {
+					expected = res;
+					return query.clone().cursorPage();
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(0, 5));
+					return query.clone().cursorPage(pageInfo.next);
+				});
 		});
 	});
 

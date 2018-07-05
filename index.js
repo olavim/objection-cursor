@@ -52,6 +52,7 @@ const mixin = options => {
 					.filter(op => op.name === 'orderBy')
 					.map(({args: [col, dir]}) => ({
 						col,
+						prop: this.modelClass().columnNameToPropertyName(col),
 						dir: (dir || 'asc').toLowerCase()
 					}));
 
@@ -66,11 +67,11 @@ const mixin = options => {
 				const item = deserializeCursor(orderByOps, cursor);
 
 				if (item) {
-					addWhereStmts(this, orderByOps.map(({col, dir}) => ({
+					addWhereStmts(this, orderByOps.map(({col, prop, dir}) => ({
 						col,
 						// If going backward: asc => desc, desc => asc
 						dir: before === (dir === 'asc') ? 'desc' : 'asc',
-						val: item[col]
+						val: item[prop]
 					})));
 				}
 
