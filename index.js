@@ -44,7 +44,7 @@ const mixin = options => {
 			cursorPage(cursor, before = false) {
 				const origBuilder = this.clone();
 
-				if (!this.has('limit')) {
+				if (!this._operations.find(op => op.name === 'limit')) {
 					this.limit(options.limit);
 				}
 
