@@ -78,42 +78,55 @@ describe('database tests', () => {
 			}
 		}
 
-		function test(query, pages) {
-			let expected;
-			let perPage;
-			let page = 0;
+		function test(query, pagesRange) {
+			const tasks = [];
+			for (let pages = pagesRange[0]; pages < pagesRange[1]; pages++) {
+				let expected;
+				let perPage;
+				let page = 0;
 
-			let q = query.clone().then(res => {
-				expected = res;
-				perPage = Math.ceil(expected.length / pages);
-				return query.clone().limit(perPage).cursorPage();
-			});
-
-			for (let i = 0; i < pages; i++) {
-				q = q.then(({results, pageInfo}) => {
-					expect(pageInfo.total).to.equal(expected.length);
-					expect(results).to.deep.equal(expected.slice(perPage * page, perPage * (page + 1)));
-
-					if ((page + 1) * perPage > expected.length) {
-						perPage = expected.length - (page * perPage);
-					}
-
-					page++;
-					expect(results.length).to.equal(perPage);
-					return query.clone().limit(perPage).cursorPage(pageInfo.next);
+				let q = query.clone().then(res => {
+					expected = res;
+					perPage = Math.ceil(expected.length / pages);
+					return query.clone().limit(perPage).cursorPage();
 				});
-			}
 
-			return q;
+				for (let i = 0; i < pages; i++) {
+					q = q.then(({results, pageInfo}) => {
+						expect(pageInfo.total).to.equal(expected.length);
+						expect(results, `page: ${i+1}/${pages}`).to.deep.equal(expected.slice(perPage * page, perPage * (page + 1)));
+
+						if ((page + 1) * perPage > expected.length) {
+							perPage = expected.length - (page * perPage);
+						}
+
+						page++;
+						expect(results.length).to.equal(perPage);
+						return query.clone().limit(perPage).cursorPage(pageInfo.next);
+					});
+				}
+
+				q = q
+					.then(({pageInfo}) => {
+						return query.clone().limit(5).cursorPage(pageInfo.next);
+					})
+					.then(({results}) => {
+						expect(results).to.deep.equal([]);
+					});
+
+				tasks.push(q);
+			}
+			return Promise.all(tasks);
 		}
 
 		it('other where statements', () => {
 			const query = Movie
 				.query(knex)
+				.orderBy('author')
 				.orderBy('id')
 				.where('title', 'like', 'movie-0%');
 
-			return test(query, 5);
+			return test(query, [2, 5]);
 		});
 
 		it('one order by col', () => {
@@ -121,7 +134,7 @@ describe('database tests', () => {
 				.query(knex)
 				.orderBy('id');
 
-			return test(query, 5);
+			return test(query, [2, 5]);
 		});
 
 		it('two order by cols: asc,desc', () => {
@@ -130,7 +143,7 @@ describe('database tests', () => {
 				.orderBy('title', 'asc')
 				.orderBy('id', 'desc');
 
-			return test(query, 5);
+			return test(query, [2, 5]);
 		});
 
 		it('three order by cols: asc,desc,asc', () => {
@@ -140,7 +153,7 @@ describe('database tests', () => {
 				.orderBy('author', 'desc')
 				.orderBy('id', 'asc');
 
-			return test(query, 5);
+			return test(query, [2, 5]);
 		});
 
 		it('four order by cols: asc,desc,desc,asc', () => {
@@ -151,7 +164,7 @@ describe('database tests', () => {
 				.orderBy('date', 'desc')
 				.orderBy('id', 'asc');
 
-			return test(query, 5);
+			return test(query, [2, 5]);
 		});
 
 		it('go to end, then back to beginning', () => {

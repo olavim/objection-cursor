@@ -1,29 +1,35 @@
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
 
+function addWhereComposites(builder, composites) {
+	for (const {col, val} of composites) {
+		const op = val === null ? 'is' : '=';
+		builder.andWhere(col, op, val);
+	}
+}
+
 function addWhereStmts(builder, ops, composites = []) {
 	if (ops.length === 0) {
 		return builder.where(false);
 	}
 
+	const op = ops[0].val === null ? 'is not' : ops[0].dir === 'asc' ? '>' : '<';
+
 	if (ops.length === 1) {
-		return builder.where(ops[0].col, ops[0].dir === 'asc' ? '>' : '<', ops[0].val);
+		return builder.where(ops[0].col, op, ops[0].val);
 	}
 
-	const compCols = composites.map(c => c.col);
-	const compVals = composites.map(c => c.val);
+	composites = [ops[0], ...composites];
 
-	builder
-		.where(ops[0].col, ops[0].dir === 'asc' ? '>' : '<', ops[0].val)
-		.orWhere(function () {
-			this.whereComposite(
-				[ops[0].col, ...compCols],
-				[ops[0].val, ...compVals]
-			);
+	builder.andWhere(function () {
+		this.where(ops[0].col, op, ops[0].val);
+		this.orWhere(function () {
+			addWhereComposites(this, composites);
 			this.andWhere(function () {
 				// Add where statements recursively
-				addWhereStmts(this, ops.slice(1), [ops[0], ...composites]);
+				addWhereStmts(this, ops.slice(1), composites);
 			});
 		});
+	})
 }
 
 const mixin = options => {
