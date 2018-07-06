@@ -10,6 +10,7 @@
   "engines": {
     "node": ">=6.0.0"
   },
+  "homepage": "https://github.com/olavim/objection-cursor#readme",
   "repository": "https://github.com/olavim/objection-cursor",
   "bugs": {
     "url": "https://github.com/olavim/objection-cursor/issues"
@@ -31,7 +32,10 @@
   },
   "keywords": [
     "objection",
-    "database",
+    "plugin",
+    "sql",
+    "mysql",
+    "sqlite3",
     "cursor",
     "pagination"
   ]
