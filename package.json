@@ -10,7 +10,10 @@
   "engines": {
     "node": ">=6.0.0"
   },
-  "repository": "git@github.com:olavim/objection-cursor",
+  "repository": "https://github.com/olavim/objection-cursor",
+  "bugs": {
+    "url": "https://github.com/olavim/objection-cursor/issues"
+  },
   "author": "Olavi Mustanoja <tilastokeskus@gmail.com>",
   "license": "MIT",
   "devDependencies": {
@@ -25,5 +28,11 @@
   },
   "dependencies": {
     "base64url": "^3.0.0"
-  }
+  },
+  "keywords": [
+    "objection",
+    "database",
+    "cursor",
+    "pagination"
+  ]
 }
