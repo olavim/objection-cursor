@@ -25,6 +25,7 @@
     "lodash": "^4.17.10",
     "mocha": "^5.2.0",
     "objection": "^1.1.10",
+    "pg": "^7.4.3",
     "sqlite3": "^4.0.1"
   },
   "dependencies": {

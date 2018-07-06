@@ -115,14 +115,15 @@ const mixin = options => {
 							.then(() => {
 								if (info.total || info.hasNext || info.hasPrevious) {
 									return origBuilder.resultSize().then(rs => {
-										total = rs;
-										setIfEnabled('total', rs);
+										total = parseInt(rs, 10);
+										setIfEnabled('total', total);
 									});
 								}
 							})
 							.then(() => {
 								if (info.remaining || info.hasNext || info.hasPrevious) {
 									return builder.clone().resultSize().then(rs => {
+										rs = parseInt(rs, 10);
 										const remaining = rs - models.length;
 										setIfEnabled('remaining', remaining);
 										setIfEnabled('hasNext', (!before && remaining > 0) || (before && total - rs > 0));
