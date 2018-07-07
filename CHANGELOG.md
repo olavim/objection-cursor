@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.2.7"></a>
+## [0.2.7](https://github.com/olavim/objection-cursor/compare/v0.2.6...v0.2.7) (2018-07-07)
+
+
+### Bug Fixes
+
+* do not use runAfter builder for remaining count ([55d31ce](https://github.com/olavim/objection-cursor/commit/55d31ce))
+
+
+
 <a name="0.2.6"></a>
 ## [0.2.6](https://github.com/olavim/objection-cursor/compare/v0.2.5...v0.2.6) (2018-07-06)
 
