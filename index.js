@@ -50,7 +50,7 @@ const mixin = options => {
 			cursorPage(cursor, before = false) {
 				const origBuilder = this.clone();
 
-				if (!this._operations.find(op => op.name === 'limit')) {
+				if (!this.has(/limit/)) {
 					this.limit(options.limit);
 				}
 
@@ -63,7 +63,7 @@ const mixin = options => {
 					}));
 
 				if (before) {
-					this.clear('orderBy');
+					this.clear(/orderBy/);
 					for (const {col, dir} of orderByOps) {
 						this.orderBy(col, dir === 'asc' ? 'desc' : 'asc');
 					}
@@ -82,7 +82,7 @@ const mixin = options => {
 				}
 
 				return this
-					.runAfter((models, builder) => {
+					.runAfter(models => {
 						// We want to always return results in the same order; as if turning pages in a book
 						if (before) {
 							models.reverse();
@@ -122,7 +122,7 @@ const mixin = options => {
 							})
 							.then(() => {
 								if (info.remaining || info.hasNext || info.hasPrevious) {
-									return builder.clone().resultSize().then(rs => {
+									return this.clone().resultSize().then(rs => {
 										rs = parseInt(rs, 10);
 										const remaining = rs - models.length;
 										setIfEnabled('remaining', remaining);

@@ -48,10 +48,6 @@ describe('database tests', () => {
 
 		describe(config.client, () => {
 			before(() => {
-				return knex('movies');
-			});
-
-			before(() => {
 				return knex.schema.dropTableIfExists('movies');
 			});
 
