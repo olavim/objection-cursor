@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.2.8"></a>
+## [0.2.8](https://github.com/olavim/objection-cursor/compare/v0.2.7...v0.2.8) (2018-07-09)
+
+
+### Bug Fixes
+
+* support [table].[column] format in orderBy ([bbf2080](https://github.com/olavim/objection-cursor/commit/bbf2080))
+
+
+
 <a name="0.2.7"></a>
 ## [0.2.7](https://github.com/olavim/objection-cursor/compare/v0.2.6...v0.2.7) (2018-07-07)
 

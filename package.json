@@ -1,6 +1,6 @@
 {
   "name": "objection-cursor",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Cursor based pagination plugin for Objection.js",
   "main": "index.js",
   "scripts": {
