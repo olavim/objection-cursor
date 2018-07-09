@@ -58,7 +58,7 @@ const mixin = options => {
 					.filter(op => op.name === 'orderBy')
 					.map(({args: [col, dir]}) => ({
 						col,
-						prop: this.modelClass().columnNameToPropertyName(col),
+						prop: this.modelClass().columnNameToPropertyName(col.substr(col.lastIndexOf('.') + 1)),
 						dir: (dir || 'asc').toLowerCase()
 					}));
 

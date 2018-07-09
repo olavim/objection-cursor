@@ -252,5 +252,24 @@ module.exports = knex => {
 					return query.clone().cursorPage(pageInfo.next);
 				});
 		});
+
+		it('order by [table].[column]', () => {
+			const query = Movie
+				.query(knex)
+				.orderBy('movies.id', 'asc')
+				.limit(5);
+
+			let expected;
+
+			return query.clone()
+				.then(res => {
+					expected = res;
+					return query.clone().cursorPage();
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(0, 5));
+					return query.clone().cursorPage(pageInfo.next);
+				});
+		});
 	});
 }
