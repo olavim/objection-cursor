@@ -1,5 +1,5 @@
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
-const {get} = require('lodash');
+const {get, last} = require('lodash');
 
 function addWhereComposites(builder, composites) {
 	for (const {col, val} of composites) {
@@ -39,8 +39,12 @@ function columnToProperty(model, col) {
 		return model.columnNameToPropertyName(prop);
 	}
 
-	const {columnName, access} = col.reference;
-	return `${model.columnNameToPropertyName(columnName)}.${access.map(a => a.ref).join('.')}`;
+	let {columnName, access} = col.reference;
+
+	const columnPieces = columnName.split('.');
+	columnPieces[columnPieces.length - 1] = model.columnNameToPropertyName(last(columnPieces));
+
+	return `${columnPieces.join('.')}.${access.map(a => a.ref).join('.')}`;
 }
 
 const mixin = options => {

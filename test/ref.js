@@ -65,5 +65,44 @@ module.exports = knex => {
 					expect(res.results).to.deep.equal(expected.slice(0, 10));
 				});
 		});
+
+		it('order by ref with column mappers', () => {
+			class CaseMovie extends Movie {
+				$formatDatabaseJson(json) {
+					const formatted = super.$formatDatabaseJson(json);
+					return mapKeys(formatted, (val, key) => snakeCase(key));
+				}
+
+				$parseDatabaseJson(json) {
+					const parsed = super.$parseDatabaseJson(json);
+					return mapKeys(parsed, (val, key) => camelCase(key));
+				}
+			}
+
+			const query = CaseMovie
+				.query(knex)
+				.joinEager('ref')
+				.orderBy(ref('ref.data:title').castText(), 'desc')
+				.orderBy('movies.id', 'asc');
+
+			let expected;
+
+			return query.clone()
+				.then(res => {
+					expected = res;
+					return query.clone().limit(10).cursorPage();
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal(expected.slice(0, 10));
+					return query.clone().cursorPage(res.pageInfo.next);
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal(expected.slice(10, 20));
+					return query.clone().previousCursorPage(res.pageInfo.previous);
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal(expected.slice(0, 10));
+				});
+		});
 	});
 }
