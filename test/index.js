@@ -3,6 +3,7 @@
 const Knex = require('knex');
 const cursorTests = require('./cursor');
 const optionsTests = require('./options');
+const referenceTests = require('./ref');
 
 function padStart(str, targetLength, padString) {
 	let padded = str;
@@ -52,6 +53,10 @@ describe('database tests', () => {
 			});
 
 			before(() => {
+				return knex.schema.dropTableIfExists('movie_refs');
+			});
+
+			before(() => {
 				return knex.schema.createTable('movies', table => {
 					table.increments();
 					table.string('title');
@@ -62,11 +67,30 @@ describe('database tests', () => {
 			});
 
 			before(() => {
+				return knex.schema.createTable('movie_refs', table => {
+					table.increments();
+					table.integer('movie_id');
+					table.jsonb('data');
+				});
+			});
+
+			before(() => {
 				return knex('movies').insert(generateMovies(20));
+			});
+
+			before(() => {
+				return knex('movie_refs').insert(generateMovies(20).map((movie, id) => ({
+					movie_id: id + 1,
+					data: {title: movie.title}
+				})));
 			});
 
 			cursorTests(knex);
 			optionsTests(knex);
+
+			if (config.client === 'pg') {
+				referenceTests(knex);
+			}
 		});
 
 		return knex;

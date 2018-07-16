@@ -1,4 +1,5 @@
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
+const {get} = require('lodash');
 
 function addWhereComposites(builder, composites) {
 	for (const {col, val} of composites) {
@@ -32,6 +33,16 @@ function addWhereStmts(builder, ops, composites = []) {
 	})
 }
 
+function columnToProperty(model, col) {
+	if (typeof col === 'string') {
+		const prop = col.substr(col.lastIndexOf('.') + 1);
+		return model.columnNameToPropertyName(prop);
+	}
+
+	const {columnName, access} = col.reference;
+	return `${model.columnNameToPropertyName(columnName)}.${access.map(a => a.ref).join('.')}`;
+}
+
 const mixin = options => {
 	options = Object.assign({limit: 50}, options);
 
@@ -47,6 +58,18 @@ const mixin = options => {
 
 	return Base => {
 		class CursorQueryBuilder extends Base.QueryBuilder {
+			/* Objection converts reference builders to raw builders, so to support references,
+			 * we need to save the reference builder.
+			 */
+			orderBy(col, dir = 'asc') {
+				super.orderBy(col, dir);
+
+				const orderBy = this.context().orderBy || [];
+				orderBy.push({col, dir});
+
+				return this.mergeContext({orderBy});
+			}
+
 			cursorPage(cursor, before = false) {
 				const origBuilder = this.clone();
 
@@ -54,16 +77,15 @@ const mixin = options => {
 					this.limit(options.limit);
 				}
 
-				const orderByOps = this._operations
-					.filter(op => op.name === 'orderBy')
-					.map(({args: [col, dir]}) => ({
-						col,
-						prop: this.modelClass().columnNameToPropertyName(col.substr(col.lastIndexOf('.') + 1)),
-						dir: (dir || 'asc').toLowerCase()
-					}));
+				const orderByOps = this.context().orderBy.map(({col, dir}) => ({
+					col,
+					prop: columnToProperty(this.modelClass(), col),
+					dir: (dir || 'asc').toLowerCase()
+				}));
 
 				if (before) {
 					this.clear(/orderBy/);
+					this.mergeContext({orderBy: []});
 					for (const {col, dir} of orderByOps) {
 						this.orderBy(col, dir === 'asc' ? 'desc' : 'asc');
 					}
@@ -77,7 +99,7 @@ const mixin = options => {
 						col,
 						// If going backward: asc => desc, desc => asc
 						dir: before === (dir === 'asc') ? 'desc' : 'asc',
-						val: item[prop]
+						val: get(item, prop)
 					})));
 				}
 

@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const Model = require('objection').Model;
+const {Model, ref} = require('objection');
 const {mapKeys, snakeCase, camelCase} = require('lodash');
 const cursorPagination = require('..');
 
