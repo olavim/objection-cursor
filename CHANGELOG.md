@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.3.1"></a>
+## [0.3.1](https://github.com/olavim/objection-cursor/compare/v0.3.0...v0.3.1) (2018-07-16)
+
+
+### Bug Fixes
+
+* refs with column mappers ([a1388e4](https://github.com/olavim/objection-cursor/commit/a1388e4))
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/olavim/objection-cursor/compare/v0.2.8...v0.3.0) (2018-07-16)
 
