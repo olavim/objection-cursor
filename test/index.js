@@ -17,7 +17,8 @@ const generateMovies = num => {
 	const d = new Date(2000, 1, 1, 0, 0, 0, 0);
 	const arr = [...new Array(num)].map((_val, key) => {
 		return {
-			title: `movie-${padStart(String(key % 15), 2, '0')}`,
+			// Add some undefined values
+			title: key % 10 === 0 ? null : `movie-${padStart(String(key % 15), 2, '0')}`,
 			alt_title: `film-${padStart(String(key % 15), 2, '0')}`,
 			author: `author-${key % 5}`,
 			// Add some null values

@@ -65,6 +65,34 @@ const query = Movie.query()
 
 ```
 
+Passing a [reference builder](https://vincit.github.io/objection.js/#referencebuilder) to `orderBy` is supported
+
+```js
+const query = Movie.query()
+  .joinEager('director')
+  .orderBy(ref('director.name'))
+  // Order by a JSON field of an eagerly joined relation
+  .orderBy(ref('director.born:time').castText())
+  .orderBy('id')
+  ...
+```
+
+Cursors ordered by nullable columns won't work out-of-the-box. To allow working around this, [raw builders](https://vincit.github.io/objection.js/#raw-queries) are supported to an extent: a raw query is allowed to have multiple bindings, but the first must either be a [reference builder](https://vincit.github.io/objection.js/#referencebuilder), or a string directly referencing a column.
+
+```js
+const query = Movie.query()
+  // Coalesce null values into empty string
+  .orderBy(raw(`COALESCE(??, '')`, 'alternate_title'))
+  // Works with refs
+  .orderBy(raw(`COALESCE(??, '')`, ref('details:completed').castText()))
+  // Cursor uses the first binging, 'name'
+  .orderBy(raw(`?? || ?`, ['name', 'not-a-column']))
+  // Won't work
+  .orderBy(raw(`? || ??`, ['not-a-column', 'name']))
+  .orderBy('id')
+  ...
+```
+
 # API
 
 ## `Plugin`

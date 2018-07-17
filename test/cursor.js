@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const {Model, ref} = require('objection');
+const {Model, raw} = require('objection');
 const {mapKeys, snakeCase, camelCase} = require('lodash');
 const cursorPagination = require('..');
 
@@ -82,7 +82,7 @@ module.exports = knex => {
 		it('two order by cols: asc,desc', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy('title', 'asc')
+				.orderBy(raw(`coalesce(??, '')`, 'title'), 'asc')
 				.orderBy('id', 'desc');
 
 			return test(query, [2, 5]);
@@ -91,7 +91,7 @@ module.exports = knex => {
 		it('three order by cols: asc,desc,asc', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy('title', 'asc')
+				.orderBy(raw(`coalesce(??, '')`, 'title'), 'asc')
 				.orderBy('author', 'desc')
 				.orderBy('id', 'asc');
 
@@ -101,9 +101,9 @@ module.exports = knex => {
 		it('four order by cols: asc,desc,desc,asc', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy('title', 'asc')
+				.orderBy(raw(`coalesce(??, '')`, 'title'), 'asc')
 				.orderBy('author', 'desc')
-				.orderBy('date', 'desc')
+				.orderBy(raw(`coalesce(??, '1970-1-1')`, 'date'), 'desc')
 				.orderBy('id', 'asc');
 
 			return test(query, [2, 5]);
@@ -112,7 +112,7 @@ module.exports = knex => {
 		it('go to end, then back to beginning', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy('title', 'desc')
+				.orderBy(raw(`coalesce(??, '')`, 'title'), 'desc')
 				.orderBy('id', 'asc');
 
 			let expected;

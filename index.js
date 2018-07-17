@@ -1,5 +1,5 @@
-const {serializeCursor, deserializeCursor} = require('./lib/serialize');
 const {get, last} = require('lodash');
+const {serializeCursor, deserializeCursor} = require('./lib/serialize');
 
 function addWhereComposites(builder, composites) {
 	for (const {col, val} of composites) {
@@ -9,11 +9,11 @@ function addWhereComposites(builder, composites) {
 }
 
 function addWhereStmts(builder, ops, composites = []) {
-	if (ops.length === 0) {
+	if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
 		return builder.where(false);
 	}
 
-	const op = ops[0].val === null ? 'is not' : ops[0].dir === 'asc' ? '>' : '<';
+	const op = ops[0].dir === 'asc' ? '>' : '<';
 
 	if (ops.length === 1) {
 		return builder.where(ops[0].col, op, ops[0].val);
@@ -22,7 +22,9 @@ function addWhereStmts(builder, ops, composites = []) {
 	composites = [ops[0], ...composites];
 
 	builder.andWhere(function () {
-		this.where(ops[0].col, op, ops[0].val);
+		if (ops[0].val !== null) {
+			this.where(ops[0].col, op, ops[0].val);
+		}
 		this.orWhere(function () {
 			addWhereComposites(this, composites);
 			this.andWhere(function () {
@@ -34,6 +36,10 @@ function addWhereStmts(builder, ops, composites = []) {
 }
 
 function columnToProperty(model, col) {
+	if (typeof col === 'object' && col.constructor.name === 'RawBuilder') {
+		col = col._args[0];
+	}
+
 	if (typeof col === 'string') {
 		const prop = col.substr(col.lastIndexOf('.') + 1);
 		return model.columnNameToPropertyName(prop);
@@ -103,7 +109,7 @@ const mixin = options => {
 						col,
 						// If going backward: asc => desc, desc => asc
 						dir: before === (dir === 'asc') ? 'desc' : 'asc',
-						val: get(item, prop)
+						val: get(item, prop, null)
 					})));
 				}
 
