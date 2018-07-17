@@ -65,7 +65,7 @@ const query = Movie.query()
 
 ```
 
-Passing a [reference builder](https://vincit.github.io/objection.js/#referencebuilder) to `orderBy` is supported
+Passing a [reference builder](https://vincit.github.io/objection.js/#referencebuilder) to `orderBy` is supported. [Raw queries](https://vincit.github.io/objection.js/#raw-queries), however, are not.
 
 ```js
 const query = Movie.query()
@@ -77,18 +77,16 @@ const query = Movie.query()
   ...
 ```
 
-Cursors ordered by nullable columns won't work out-of-the-box. To allow working around this, [raw builders](https://vincit.github.io/objection.js/#raw-queries) are supported to an extent: a raw query is allowed to have multiple bindings, but the first must either be a [reference builder](https://vincit.github.io/objection.js/#referencebuilder), or a string directly referencing a column.
+Cursors ordered by nullable columns won't work out-of-the-box. For this reason the mixin also introduces an `orderByCoalesce` method, which you can use to treat nulls as some other value for the sake of comparisons. Same as `orderBy`, `orderByCoalesce` supports reference builders, but not raw queries.
 
 ```js
 const query = Movie.query()
-  // Coalesce null values into empty string
-  .orderBy(raw(`COALESCE(??, '')`, 'alternate_title'))
-  // Works with refs
-  .orderBy(raw(`COALESCE(??, '')`, ref('details:completed').castText()))
-  // Cursor uses the first binging, 'name'
-  .orderBy(raw(`?? || ?`, ['name', 'not-a-column']))
-  // Won't work
-  .orderBy(raw(`? || ??`, ['not-a-column', 'name']))
+  .orderByCoalesce('alt_title', 'asc', '') // Coalesce null values into empty string
+  .orderByCoalesce('alt_title', 'asc') // Same as above
+  .orderByCoalesce('alt_title', 'asc', [null, 'hello']) // First non-null value will be used
+  .orderByCoalesce(ref('details:completed').castText(), 'desc') // Works with refs
+   // Reference builders and raw queries can be coalesced to
+  .orderByCoalesce('even_more_alt_title', 'asc', [ref('alt_title'), raw('?', '')])
   .orderBy('id')
   ...
 ```
@@ -148,9 +146,10 @@ class Movie extends cursorMixin(Model) {
 ### `cursorPage([cursor, [before]])`
 
 - `cursor` - A URL-safe string used to determine after/before which element items should be returned.
-- `before` - When `true`, return items before the one specified in the cursor. Defaults to `false`.
+- `before` - When `true`, return items before the one specified in the cursor. Use this to "go back".
+  - Default: `false`.
 
-**Returns:**
+**Response format:**
 
 ```js
 {
@@ -174,6 +173,16 @@ Alias for `cursorPage`, with `before: false`.
 ### `previousCursorPage([cursor])`
 
 Alias for `cursorPage`, with `before: true`.
+
+### `orderByCoalesce(column, [direction, [values]])`
+
+Use this if you want to sort by a nullable column.
+
+- `column` - Column to sort by.
+- `direction` - Sort direction.
+  - Default: `asc`
+- `values` - Values to coalesce to. If column has a null value, treat it as the first non-null value in `values`. Can be one or many of: *string*, *ReferenceBuilder* or *RawQuery*.
+  - Default: `['']`
 
 # Options
 

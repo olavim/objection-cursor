@@ -1,10 +1,28 @@
-const {get, last} = require('lodash');
+const {get} = require('lodash');
+const {raw} = require('objection');
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
+const {columnToProperty} = require('./lib/convert');
+
+function getCoalescedOp(coalesceObj = {}, {col, prop, val, dir}) {
+	const coalesce = coalesceObj[prop];
+
+	if (coalesce) {
+		const coalesceBindingsStr = coalesce.map(() => '?');
+		col = raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(coalesce));
+
+		if (val === null) {
+			val = raw(`COALESCE(${coalesceBindingsStr})`, coalesce);
+		}
+	}
+
+	return {col, prop, val, dir};
+}
 
 function addWhereComposites(builder, composites) {
-	for (const {col, val} of composites) {
-		const op = val === null ? 'is' : '=';
-		builder.andWhere(col, op, val);
+	const coalesce = builder.context().coalesce;
+	for (const op of composites) {
+		const {col, val} = getCoalescedOp(coalesce, op);
+		builder.andWhere(col, val);
 	}
 }
 
@@ -13,18 +31,20 @@ function addWhereStmts(builder, ops, composites = []) {
 		return builder.where(false);
 	}
 
-	const op = ops[0].dir === 'asc' ? '>' : '<';
+	const {col, val, dir} = getCoalescedOp(builder.context().coalesce, ops[0]);
+	const comp = dir === 'asc' ? '>' : '<';
 
 	if (ops.length === 1) {
-		return builder.where(ops[0].col, op, ops[0].val);
+		return builder.where(col, comp, val);
 	}
 
 	composites = [ops[0], ...composites];
 
 	builder.andWhere(function () {
 		if (ops[0].val !== null) {
-			this.where(ops[0].col, op, ops[0].val);
+			this.where(col, comp, val);
 		}
+
 		this.orWhere(function () {
 			addWhereComposites(this, composites);
 			this.andWhere(function () {
@@ -33,24 +53,6 @@ function addWhereStmts(builder, ops, composites = []) {
 			});
 		});
 	})
-}
-
-function columnToProperty(model, col) {
-	if (typeof col === 'object' && col.constructor.name === 'RawBuilder') {
-		col = col._args[0];
-	}
-
-	if (typeof col === 'string') {
-		const prop = col.substr(col.lastIndexOf('.') + 1);
-		return model.columnNameToPropertyName(prop);
-	}
-
-	let {columnName, access} = col.reference;
-
-	const columnPieces = columnName.split('.');
-	columnPieces[columnPieces.length - 1] = model.columnNameToPropertyName(last(columnPieces));
-
-	return `${columnPieces.join('.')}.${access.map(a => a.ref).join('.')}`;
 }
 
 const mixin = options => {
@@ -74,14 +76,53 @@ const mixin = options => {
 			orderBy(col, dir = 'asc') {
 				super.orderBy(col, dir);
 
-				const orderBy = this.context().orderBy || [];
-				orderBy.push({col, dir});
+				if (!this.context().coalesceBuilding) {
+					const orderBy = this.context().orderBy || [];
+					orderBy.push({col, dir});
+					this.mergeContext({orderBy});
+				}
 
-				return this.mergeContext({orderBy});
+				return this;
+			}
+
+			orderByCoalesce(col, dir = 'asc', coalesceValues = ['']) {
+				this.orderBy(col, dir);
+
+				if (!Array.isArray(coalesceValues)) {
+					coalesceValues = [coalesceValues];
+				}
+
+				this.mergeContext({
+					coalesce: Object.assign({}, this.context().coalesce, {
+						[columnToProperty(this.modelClass(), col)]: coalesceValues
+					})
+				});
+
+				return this.onBuild(builder => {
+					const context = builder.context();
+					builder.mergeContext({coalesceBuilding: true});
+					builder.clear(/orderBy/);
+
+					for (let {col, dir} of context.orderBy) {
+						const coalesce = context.coalesce[columnToProperty(this.modelClass(), col)];
+						if (context.before) {
+							dir = dir === 'asc' ? 'desc' : 'asc';
+						}
+						if (coalesce) {
+							const coalesceBindingsStr = coalesce.map(() => '?').join(', ');
+							builder.orderBy(raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(coalesce)), dir)
+						} else {
+							builder.orderBy(col, dir);
+						}
+					}
+
+					builder.mergeContext({coalesceBuilding: false});
+				});
 			}
 
 			cursorPage(cursor, before = false) {
 				const origBuilder = this.clone();
+				this.mergeContext({before});
 
 				if (!this.has(/limit/)) {
 					this.limit(options.limit);
@@ -94,11 +135,9 @@ const mixin = options => {
 				}));
 
 				if (before) {
-					this.clear(/orderBy/);
-					this.mergeContext({orderBy: []});
-					for (const {col, dir} of orderByOps) {
-						this.orderBy(col, dir === 'asc' ? 'desc' : 'asc');
-					}
+					this.forEachOperation(/orderBy/, op => {
+						op.args[1] = op.args[1] === 'asc' ? 'desc' : 'asc';
+					});
 				}
 
 				// Get partial item from cursor
@@ -107,6 +146,7 @@ const mixin = options => {
 				if (item) {
 					addWhereStmts(this, orderByOps.map(({col, prop, dir}) => ({
 						col,
+						prop,
 						// If going backward: asc => desc, desc => asc
 						dir: before === (dir === 'asc') ? 'desc' : 'asc',
 						val: get(item, prop, null)

@@ -89,7 +89,7 @@ describe('database tests', () => {
 			cursorTests(knex);
 			optionsTests(knex);
 
-			if (config.client === 'pg') {
+			if (config.client !== 'sqlite3') {
 				referenceTests(knex);
 			}
 		});

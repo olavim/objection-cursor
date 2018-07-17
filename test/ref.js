@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const {Model, ref, raw} = require('objection');
+const {Model, ref} = require('objection');
 const {mapKeys, snakeCase, camelCase} = require('lodash');
 const cursorPagination = require('..');
 
@@ -43,7 +43,7 @@ module.exports = knex => {
 			const query = Movie
 				.query(knex)
 				.joinEager('ref')
-				.orderBy(raw('coalesce(?, \'\')', ref('ref.data:title').castText()), 'desc')
+				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
 				.orderBy('movies.id', 'asc');
 
 			let expected;
@@ -82,7 +82,7 @@ module.exports = knex => {
 			const query = CaseMovie
 				.query(knex)
 				.joinEager('ref')
-				.orderBy(raw('coalesce(?, \'\')', ref('ref.data:title').castText()), 'desc')
+				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
 				.orderBy('movies.id', 'asc');
 
 			let expected;

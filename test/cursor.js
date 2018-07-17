@@ -82,7 +82,7 @@ module.exports = knex => {
 		it('two order by cols: asc,desc', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy(raw(`coalesce(??, '')`, 'title'), 'asc')
+				.orderByCoalesce('title', 'asc')
 				.orderBy('id', 'desc');
 
 			return test(query, [2, 5]);
@@ -91,7 +91,7 @@ module.exports = knex => {
 		it('three order by cols: asc,desc,asc', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy(raw(`coalesce(??, '')`, 'title'), 'asc')
+				.orderByCoalesce('title', 'asc')
 				.orderBy('author', 'desc')
 				.orderBy('id', 'asc');
 
@@ -101,9 +101,9 @@ module.exports = knex => {
 		it('four order by cols: asc,desc,desc,asc', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy(raw(`coalesce(??, '')`, 'title'), 'asc')
+				.orderByCoalesce('title', 'asc')
 				.orderBy('author', 'desc')
-				.orderBy(raw(`coalesce(??, '1970-1-1')`, 'date'), 'desc')
+				.orderByCoalesce('date', 'desc', '1970-1-1')
 				.orderBy('id', 'asc');
 
 			return test(query, [2, 5]);
@@ -112,7 +112,7 @@ module.exports = knex => {
 		it('go to end, then back to beginning', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy(raw(`coalesce(??, '')`, 'title'), 'desc')
+				.orderByCoalesce('title', 'desc')
 				.orderBy('id', 'asc');
 
 			let expected;
@@ -256,20 +256,18 @@ module.exports = knex => {
 		it('order by [table].[column]', () => {
 			const query = Movie
 				.query(knex)
-				.orderBy('movies.id', 'asc')
-				.limit(5);
+				.orderBy('movies.id', 'asc');
 
-			let expected;
+			return test(query, [2, 5]);
+		});
 
-			return query.clone()
-				.then(res => {
-					expected = res;
-					return query.clone().cursorPage();
-				})
-				.then(({results, pageInfo}) => {
-					expect(results).to.deep.equal(expected.slice(0, 5));
-					return query.clone().cursorPage(pageInfo.next);
-				});
+		it('order by coalesce raw', () => {
+			const query = Movie
+				.query(knex)
+				.orderByCoalesce('title', 'desc', raw('? || ?', ['ab', 'c']))
+				.orderBy('id', 'asc');
+
+			return test(query, [2, 5]);
 		});
 	});
 }
