@@ -2,19 +2,26 @@ const {get} = require('lodash');
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
 const {columnToProperty} = require('./lib/convert');
 
-function stringifyObjectionBuilder(model, val) {
-	// Stringify raw- and reference builders, since `Model.raw` doesn't do it
-	return val && typeof val.toKnexRaw === 'function'
-		? val.toKnexRaw(model.knex())
-		: val;
+function stringifyObjectionBuilder(builder, val) {
+	if (val && typeof val.toKnexRaw === 'function') {
+		// Stringify raw- and reference builders, since `Model.raw` doesn't do it
+		try {
+			return val.toKnexRaw(builder); // Objection v1
+		} catch (_err) {
+			return val.toKnexRaw(builder.knex()); // Objection v0
+		}
+	}
+
+	return val;
 }
 
-function getCoalescedOp(model, coalesceObj = {}, {col, prop, val, dir}) {
+function getCoalescedOp(builder, coalesceObj = {}, {col, prop, val, dir}) {
 	if (coalesceObj[prop]) {
-		const mappedCoalesce = coalesceObj[prop].map(val => stringifyObjectionBuilder(model, val));
+		const model = builder.modelClass();
+		const mappedCoalesce = coalesceObj[prop].map(val => stringifyObjectionBuilder(builder, val));
 		const coalesceBindingsStr = mappedCoalesce.map(() => '?');
-		col = stringifyObjectionBuilder(model, col);
-		val = stringifyObjectionBuilder(model, val);
+		col = stringifyObjectionBuilder(builder, col);
+		val = stringifyObjectionBuilder(builder, val);
 		col = model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(mappedCoalesce));
 		val = model.raw(`COALESCE(?, ${coalesceBindingsStr})`, [val].concat(mappedCoalesce));
 	}
@@ -22,19 +29,19 @@ function getCoalescedOp(model, coalesceObj = {}, {col, prop, val, dir}) {
 	return {col, prop, val, dir};
 }
 
-function addWhereComposites(model, builder, composites, ctx) {
+function addWhereComposites(origBuilder, builder, composites, ctx) {
 	for (const op of composites) {
-		const {col, val} = getCoalescedOp(model, ctx.coalesce, op);
+		const {col, val} = getCoalescedOp(origBuilder, ctx.coalesce, op);
 		builder.andWhere(col, val);
 	}
 }
 
-function addWhereStmts(model, builder, ops, composites, ctx) {
+function addWhereStmts(origBuilder, builder, ops, composites, ctx) {
 	if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
 		return builder.where(false);
 	}
 
-	const {col, val, dir} = getCoalescedOp(model, ctx.coalesce, ops[0]);
+	const {col, val, dir} = getCoalescedOp(origBuilder, ctx.coalesce, ops[0]);
 	const comp = dir === 'asc' ? '>' : '<';
 
 	if (ops.length === 1) {
@@ -46,10 +53,10 @@ function addWhereStmts(model, builder, ops, composites, ctx) {
 	builder.andWhere(function () {
 		this.where(col, comp, val);
 		this.orWhere(function () {
-			addWhereComposites(model, this, composites, ctx);
+			addWhereComposites(origBuilder, this, composites, ctx);
 			this.andWhere(function () {
 				// Add where statements recursively
-				addWhereStmts(model, this, ops.slice(1), composites, ctx);
+				addWhereStmts(origBuilder, this, ops.slice(1), composites, ctx);
 			});
 		});
 	})
@@ -156,7 +163,7 @@ const mixin = options => {
 
 				if (item) {
 					addWhereStmts(
-						this.modelClass(),
+						this,
 						this,
 						orderByOps.map(({col, prop, dir}) => ({
 							col,
