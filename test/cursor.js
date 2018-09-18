@@ -20,6 +20,8 @@ module.exports = knex => {
 			}
 		}
 
+		Movie.knex(knex);
+
 		function test(query, pagesRange) {
 			const tasks = [];
 			for (let pages = pagesRange[0]; pages < pagesRange[1]; pages++) {
@@ -63,7 +65,7 @@ module.exports = knex => {
 
 		it('other where statements', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderBy('author')
 				.orderBy('id')
 				.where('title', 'like', 'movie-0%');
@@ -73,7 +75,7 @@ module.exports = knex => {
 
 		it('one order by col', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderBy('id');
 
 			return test(query, [2, 5]);
@@ -81,7 +83,7 @@ module.exports = knex => {
 
 		it('two order by cols: asc,desc', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderByCoalesce('title', 'asc')
 				.orderBy('id', 'desc');
 
@@ -90,7 +92,7 @@ module.exports = knex => {
 
 		it('three order by cols: asc,desc,asc', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderByCoalesce('title', 'asc')
 				.orderBy('author', 'desc')
 				.orderBy('id', 'asc');
@@ -100,10 +102,10 @@ module.exports = knex => {
 
 		it('four order by cols: asc,desc,desc,asc', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderByCoalesce('title', 'asc')
 				.orderBy('author', 'desc')
-				.orderByCoalesce('date', 'desc', '1970-1-1')
+				.orderByCoalesce('date', 'desc', raw('CAST(? as timestamptz)', '1970-1-1'))
 				.orderBy('id', 'asc');
 
 			return test(query, [2, 5]);
@@ -111,7 +113,7 @@ module.exports = knex => {
 
 		it('go to end, then back to beginning', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderByCoalesce('title', 'desc')
 				.orderBy('id', 'asc');
 
@@ -195,7 +197,7 @@ module.exports = knex => {
 
 		it('no results', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderBy('id', 'asc')
 				.where('id', '0');
 
@@ -235,7 +237,7 @@ module.exports = knex => {
 			}
 
 			const query = CaseMovie
-				.query(knex)
+				.query()
 				.orderBy('alt_title')
 				.orderBy('id', 'asc')
 				.limit(5);
@@ -255,7 +257,7 @@ module.exports = knex => {
 
 		it('order by [table].[column]', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderBy('movies.id', 'asc');
 
 			return test(query, [2, 5]);
@@ -263,7 +265,7 @@ module.exports = knex => {
 
 		it('order by coalesce raw', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.orderByCoalesce('title', 'desc', raw('? || ?', ['ab', 'c']))
 				.orderBy('id', 'asc');
 

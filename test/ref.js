@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const {Model, ref} = require('objection');
+const {Model, ref, raw} = require('objection');
 const {mapKeys, snakeCase, camelCase} = require('lodash');
 const cursorPagination = require('..');
 
@@ -39,11 +39,13 @@ module.exports = knex => {
 			}
 		}
 
+		Movie.knex(knex);
+
 		it('order by ref', () => {
 			const query = Movie
-				.query(knex)
+				.query()
 				.joinEager('ref')
-				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
+				.orderByCoalesce(ref('ref.data:none').castText(), 'desc', raw('?', ''))
 				.orderBy('movies.id', 'asc');
 
 			let expected;
@@ -51,10 +53,14 @@ module.exports = knex => {
 			return query.clone()
 				.then(res => {
 					expected = res;
-					return query.clone().limit(10).cursorPage();
+					return query.clone().limit(5).cursorPage();
 				})
 				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(0, 10));
+					expect(res.results).to.deep.equal(expected.slice(0, 5));
+					return query.clone().limit(5).cursorPage(res.pageInfo.next);
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal(expected.slice(5, 10));
 					return query.clone().limit(10).cursorPage(res.pageInfo.next);
 				})
 				.then(res => {
@@ -80,7 +86,7 @@ module.exports = knex => {
 			}
 
 			const query = CaseMovie
-				.query(knex)
+				.query()
 				.joinEager('ref')
 				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
 				.orderBy('movies.id', 'asc');

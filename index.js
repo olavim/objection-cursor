@@ -9,29 +9,25 @@ function getCoalescedOp(coalesceObj = {}, {col, prop, val, dir}) {
 	if (coalesce) {
 		const coalesceBindingsStr = coalesce.map(() => '?');
 		col = raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(coalesce));
-
-		if (val === null) {
-			val = raw(`COALESCE(${coalesceBindingsStr})`, coalesce);
-		}
+		val = raw(`COALESCE(?, ${coalesceBindingsStr})`, [val].concat(coalesce));
 	}
 
 	return {col, prop, val, dir};
 }
 
-function addWhereComposites(builder, composites) {
-	const coalesce = builder.context().coalesce;
+function addWhereComposites(builder, composites, ctx) {
 	for (const op of composites) {
-		const {col, val} = getCoalescedOp(coalesce, op);
+		const {col, val} = getCoalescedOp(ctx.coalesce, op);
 		builder.andWhere(col, val);
 	}
 }
 
-function addWhereStmts(builder, ops, composites = []) {
+function addWhereStmts(builder, ops, composites, ctx) {
 	if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
 		return builder.where(false);
 	}
 
-	const {col, val, dir} = getCoalescedOp(builder.context().coalesce, ops[0]);
+	const {col, val, dir} = getCoalescedOp(ctx.coalesce, ops[0]);
 	const comp = dir === 'asc' ? '>' : '<';
 
 	if (ops.length === 1) {
@@ -41,15 +37,12 @@ function addWhereStmts(builder, ops, composites = []) {
 	composites = [ops[0], ...composites];
 
 	builder.andWhere(function () {
-		if (ops[0].val !== null) {
-			this.where(col, comp, val);
-		}
-
+		this.where(col, comp, val);
 		this.orWhere(function () {
-			addWhereComposites(this, composites);
+			addWhereComposites(this, composites, ctx);
 			this.andWhere(function () {
 				// Add where statements recursively
-				addWhereStmts(this, ops.slice(1), composites);
+				addWhereStmts(this, ops.slice(1), composites, ctx);
 			});
 		});
 	})
@@ -144,13 +137,18 @@ const mixin = options => {
 				const item = deserializeCursor(orderByOps, cursor);
 
 				if (item) {
-					addWhereStmts(this, orderByOps.map(({col, prop, dir}) => ({
-						col,
-						prop,
-						// If going backward: asc => desc, desc => asc
-						dir: before === (dir === 'asc') ? 'desc' : 'asc',
-						val: get(item, prop, null)
-					})));
+					addWhereStmts(
+						this,
+						orderByOps.map(({col, prop, dir}) => ({
+							col,
+							prop,
+							// If going backward: asc => desc, desc => asc
+							dir: before === (dir === 'asc') ? 'desc' : 'asc',
+							val: get(item, prop, null)
+						})),
+						[],
+						this.context()
+					);
 				}
 
 				return this
