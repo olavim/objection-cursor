@@ -1,33 +1,40 @@
 const {get} = require('lodash');
-const {raw} = require('objection');
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
 const {columnToProperty} = require('./lib/convert');
 
-function getCoalescedOp(coalesceObj = {}, {col, prop, val, dir}) {
-	const coalesce = coalesceObj[prop];
+function stringifyObjectionBuilder(model, val) {
+	// Stringify raw- and reference builders, since `Model.raw` doesn't do it
+	return val && typeof val.toKnexRaw === 'function'
+		? val.toKnexRaw(model.knex())
+		: val;
+}
 
-	if (coalesce) {
-		const coalesceBindingsStr = coalesce.map(() => '?');
-		col = raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(coalesce));
-		val = raw(`COALESCE(?, ${coalesceBindingsStr})`, [val].concat(coalesce));
+function getCoalescedOp(model, coalesceObj = {}, {col, prop, val, dir}) {
+	if (coalesceObj[prop]) {
+		const mappedCoalesce = coalesceObj[prop].map(val => stringifyObjectionBuilder(model, val));
+		const coalesceBindingsStr = mappedCoalesce.map(() => '?');
+		col = stringifyObjectionBuilder(model, col);
+		val = stringifyObjectionBuilder(model, val);
+		col = model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(mappedCoalesce));
+		val = model.raw(`COALESCE(?, ${coalesceBindingsStr})`, [val].concat(mappedCoalesce));
 	}
 
 	return {col, prop, val, dir};
 }
 
-function addWhereComposites(builder, composites, ctx) {
+function addWhereComposites(model, builder, composites, ctx) {
 	for (const op of composites) {
-		const {col, val} = getCoalescedOp(ctx.coalesce, op);
+		const {col, val} = getCoalescedOp(model, ctx.coalesce, op);
 		builder.andWhere(col, val);
 	}
 }
 
-function addWhereStmts(builder, ops, composites, ctx) {
+function addWhereStmts(model, builder, ops, composites, ctx) {
 	if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
 		return builder.where(false);
 	}
 
-	const {col, val, dir} = getCoalescedOp(ctx.coalesce, ops[0]);
+	const {col, val, dir} = getCoalescedOp(model, ctx.coalesce, ops[0]);
 	const comp = dir === 'asc' ? '>' : '<';
 
 	if (ops.length === 1) {
@@ -39,10 +46,10 @@ function addWhereStmts(builder, ops, composites, ctx) {
 	builder.andWhere(function () {
 		this.where(col, comp, val);
 		this.orWhere(function () {
-			addWhereComposites(this, composites, ctx);
+			addWhereComposites(model, this, composites, ctx);
 			this.andWhere(function () {
 				// Add where statements recursively
-				addWhereStmts(this, ops.slice(1), composites, ctx);
+				addWhereStmts(model, this, ops.slice(1), composites, ctx);
 			});
 		});
 	})
@@ -81,13 +88,15 @@ const mixin = options => {
 			orderByCoalesce(col, dir = 'asc', coalesceValues = ['']) {
 				this.orderBy(col, dir);
 
+				const model = this.modelClass();
+
 				if (!Array.isArray(coalesceValues)) {
 					coalesceValues = [coalesceValues];
 				}
 
 				this.mergeContext({
 					coalesce: Object.assign({}, this.context().coalesce, {
-						[columnToProperty(this.modelClass(), col)]: coalesceValues
+						[columnToProperty(model, col)]: coalesceValues
 					})
 				});
 
@@ -97,13 +106,22 @@ const mixin = options => {
 					builder.clear(/orderBy/);
 
 					for (let {col, dir} of context.orderBy) {
-						const coalesce = context.coalesce[columnToProperty(this.modelClass(), col)];
+						const coalesce = context.coalesce[columnToProperty(model, col)];
+
 						if (context.before) {
 							dir = dir === 'asc' ? 'desc' : 'asc';
 						}
+
 						if (coalesce) {
+							const mappedCoalesce = coalesce.map(val => stringifyObjectionBuilder(builder, val));
+							const colStr = stringifyObjectionBuilder(builder, col);
+
 							const coalesceBindingsStr = coalesce.map(() => '?').join(', ');
-							builder.orderBy(raw(`COALESCE(??, ${coalesceBindingsStr})`, [col].concat(coalesce)), dir)
+
+							builder.orderBy(
+								model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [colStr].concat(mappedCoalesce)),
+								dir
+							)
 						} else {
 							builder.orderBy(col, dir);
 						}
@@ -138,6 +156,7 @@ const mixin = options => {
 
 				if (item) {
 					addWhereStmts(
+						this.modelClass(),
 						this,
 						orderByOps.map(({col, prop, dir}) => ({
 							col,
