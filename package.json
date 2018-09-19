@@ -32,7 +32,7 @@
     "lodash": "^4.17.10"
   },
   "peerDependencies": {
-    "objection": ">=0.8.3"
+    "objection": ">=0.8"
   },
   "keywords": [
     "objection",
