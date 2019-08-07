@@ -220,7 +220,7 @@ const mixin = options => {
 								if (info.remaining || info.hasNext || info.hasPrevious) {
 									return this.clone().resultSize().then(rs => {
 										rs = parseInt(rs, 10);
-										const remaining = rs - models.length;
+										const remaining = before ? total - rs : rs - models.length;
 										setIfEnabled('remaining', remaining);
 										setIfEnabled('hasNext', (!before && remaining > 0) || (before && total - rs > 0));
 										setIfEnabled('hasPrevious', (before && remaining > 0) || (!before && total - rs > 0));
