@@ -1,11 +1,12 @@
 {
   "name": "objection-cursor",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "description": "Cursor based pagination plugin for Objection.js",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "lint": "eslint --fix \"index.js\" \"serialize.js\" \"test/**/*.js\""
+    "lint": "eslint --fix \"index.js\" \"serialize.js\" \"test/**/*.js\"",
+    "release": "standard-version"
   },
   "engines": {
     "node": ">=6.0.0"
