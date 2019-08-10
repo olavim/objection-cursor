@@ -69,6 +69,8 @@ const mixin = options => {
 		{
 			total: false,
 			remaining: false,
+			remainingBefore: false,
+			remainingAfter: false,
 			hasNext: false,
 			hasPrevious: false
 		},
@@ -81,19 +83,34 @@ const mixin = options => {
 			 * we need to save the reference builder.
 			 */
 			orderBy(col, dir = 'asc') {
-				super.orderBy(col, dir);
+				const ctx = this.context();
 
-				if (!this.context().coalesceBuilding) {
-					const orderBy = this.context().orderBy || [];
+				if (ctx.coalesceBuilding || ctx.orderByBuilding) {
+					return super.orderBy(col, dir);
+				} else {
+					const orderBy = ctx.orderBy || [];
 					orderBy.push({col, dir});
 					this.mergeContext({orderBy});
 				}
 
-				return this;
+				return this
+					.onBuild(builder => {
+						if (!builder.context().coalesce && !builder.context().orderByBuilding) {
+							builder.mergeContext({orderByBuilding: true});
+
+							for (let {col, dir} of builder.context().orderBy) {
+								builder.orderBy(col, dir);
+							}
+
+							builder.mergeContext({orderByBuilding: false});
+						}
+					});
 			}
 
 			orderByCoalesce(col, dir = 'asc', coalesceValues = ['']) {
-				this.orderBy(col, dir);
+				const orderBy = this.context().orderBy || [];
+				orderBy.push({col, dir});
+				this.mergeContext({orderBy});
 
 				const model = this.modelClass();
 
@@ -104,80 +121,103 @@ const mixin = options => {
 				this.mergeContext({
 					coalesce: Object.assign({}, this.context().coalesce, {
 						[columnToProperty(model, col)]: coalesceValues
-					})
-				});
+					}),
+					onBuildOrderByCoalesce: builder => {
+						const context = builder.context();
+						builder.mergeContext({coalesceBuilding: true});
 
-				return this.onBuild(builder => {
-					const context = builder.context();
-					builder.mergeContext({coalesceBuilding: true});
-					builder.clear(/orderBy/);
+						for (let {col, dir} of context.orderBy) {
+							const coalesce = context.coalesce[columnToProperty(model, col)];
 
-					for (let {col, dir} of context.orderBy) {
-						const coalesce = context.coalesce[columnToProperty(model, col)];
+							if (coalesce) {
+								const mappedCoalesce = coalesce.map(val => stringifyObjectionBuilder(builder, val));
+								const colStr = stringifyObjectionBuilder(builder, col);
 
-						if (context.before) {
-							dir = dir === 'asc' ? 'desc' : 'asc';
+								const coalesceBindingsStr = coalesce.map(() => '?').join(', ');
+
+								builder.orderBy(
+									model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [colStr].concat(mappedCoalesce)),
+									dir
+								)
+							} else {
+								builder.orderBy(col, dir);
+							}
 						}
 
-						if (coalesce) {
-							const mappedCoalesce = coalesce.map(val => stringifyObjectionBuilder(builder, val));
-							const colStr = stringifyObjectionBuilder(builder, col);
-
-							const coalesceBindingsStr = coalesce.map(() => '?').join(', ');
-
-							builder.orderBy(
-								model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [colStr].concat(mappedCoalesce)),
-								dir
-							)
-						} else {
-							builder.orderBy(col, dir);
-						}
+						builder.mergeContext({coalesceBuilding: false});
 					}
-
-					builder.mergeContext({coalesceBuilding: false});
 				});
+
+				return this
+					.onBuild(builder => {
+						// If `cursorPage` was not called, add order by -statements here
+						if (!builder.context().cursorPage) {
+							builder.context().onBuildOrderByCoalesce(builder);
+						}
+					});
 			}
 
 			cursorPage(cursor, before = false) {
-				const origBuilder = this.clone();
-				this.mergeContext({before});
+				let origBuilder;
+				let orderByOps;
+				let item;
 
-				if (!this.has(/limit/)) {
-					this.limit(options.limit);
-				}
-
-				const orderByOps = this.context().orderBy.map(({col, dir}) => ({
-					col,
-					prop: columnToProperty(this.modelClass(), col),
-					dir: (dir || 'asc').toLowerCase()
-				}));
-
-				if (before) {
-					this.forEachOperation(/orderBy/, op => {
-						op.args[1] = op.args[1] === 'asc' ? 'desc' : 'asc';
-					});
-				}
-
-				// Get partial item from cursor
-				const item = deserializeCursor(orderByOps, cursor);
-
-				if (item) {
-					addWhereStmts(
-						this,
-						this,
-						orderByOps.map(({col, prop, dir}) => ({
-							col,
-							prop,
-							// If going backward: asc => desc, desc => asc
-							dir: before === (dir === 'asc') ? 'desc' : 'asc',
-							val: get(item, prop, null)
-						})),
-						[],
-						this.context()
-					);
-				}
+				this.mergeContext({
+					cursorPage: true, // Flag notifying that `cursorPage` was called
+					before
+				});
 
 				return this
+					.onBuild(builder => {
+						const ctx = () => builder.context();
+
+						if (!ctx().cursorBuilding && !ctx().origBuilder) {
+							builder.mergeContext({cursorBuilding: true});
+
+							if (ctx().onBuildOrderByCoalesce) {
+								ctx().onBuildOrderByCoalesce(builder);
+							}
+
+							origBuilder = builder.clone().mergeContext({origBuilder: true});
+
+							if (!builder.has(/limit/)) {
+								builder.limit(options.limit);
+							}
+
+							orderByOps = ctx().orderBy.map(({col, dir}) => ({
+								col,
+								prop: columnToProperty(this.modelClass(), col),
+								dir: (dir || 'asc').toLowerCase()
+							}));
+
+							if (before) {
+								builder.forEachOperation(/orderBy/, op => {
+									op.args[1] = op.args[1] === 'asc' ? 'desc' : 'asc';
+								});
+							}
+
+							// Get partial item from cursor
+							item = deserializeCursor(orderByOps, cursor);
+
+							if (item) {
+								addWhereStmts(
+									builder,
+									builder,
+									orderByOps.map(({col, prop, dir}) => ({
+										col,
+										prop,
+										// If going backward: asc => desc, desc => asc
+										dir: before === (dir === 'asc') ? 'desc' : 'asc',
+										val: get(item, prop, null)
+									})),
+									[],
+									ctx()
+								);
+							}
+
+							builder.mergeContext({cursorBuilding: false});
+						}
+					})
 					.runAfter(models => {
 						// We want to always return results in the same order; as if turning pages in a book
 						if (before) {
@@ -203,13 +243,19 @@ const mixin = options => {
 						let total;
 						const info = options.pageInfo;
 
+						// Check if at least one given option is enabled
+						const isEnabled = opts => {
+							opts = Array.isArray(opts) ? opts : [opts];
+							return opts.some(opt => info[opt]);
+						}
+
 						const setIfEnabled = (opt, val) => {
 							res.pageInfo[opt] = info[opt] ? val : res.pageInfo[opt];
 						}
 
 						return Promise.resolve()
 							.then(() => {
-								if (info.total || info.hasNext || info.hasPrevious) {
+								if (isEnabled(['total', 'hasNext', 'hasPrevious', 'remainingBefore', 'remainingAfter'])) {
 									return origBuilder.resultSize().then(rs => {
 										total = parseInt(rs, 10);
 										setIfEnabled('total', total);
@@ -217,13 +263,16 @@ const mixin = options => {
 								}
 							})
 							.then(() => {
-								if (info.remaining || info.hasNext || info.hasPrevious) {
+								if (isEnabled(['hasMore', 'hasNext', 'hasPrevious', 'remaining', 'remainingBefore', 'remainingAfter'])) {
 									return this.clone().resultSize().then(rs => {
 										rs = parseInt(rs, 10);
 										const remaining = rs - models.length;
 										setIfEnabled('remaining', remaining);
-										setIfEnabled('hasNext', (!before && remaining > 0) || (before && total - rs > 0));
+										setIfEnabled('remainingBefore', before ? remaining : total - rs);
+										setIfEnabled('remainingAfter', before ? total - rs : remaining);
+										setIfEnabled('hasMore', remaining > 0);
 										setIfEnabled('hasPrevious', (before && remaining > 0) || (!before && total - rs > 0));
+										setIfEnabled('hasNext', (!before && remaining > 0) || (before && total - rs > 0));
 									});
 								}
 							})

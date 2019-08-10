@@ -39,14 +39,15 @@ module.exports = knex => {
 			}
 		}
 
+		MovieRef.knex(knex);
 		Movie.knex(knex);
 
 		it('order by ref', () => {
 			const query = Movie
 				.query()
-				.joinEager('ref')
 				.orderByCoalesce(ref('ref.data:none').castText(), 'desc', raw('?', ''))
-				.orderBy('movies.id', 'asc');
+				.orderBy('movies.id', 'asc')
+				.joinEager('ref');
 
 			let expected;
 

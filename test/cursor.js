@@ -8,9 +8,12 @@ module.exports = knex => {
 		const cursor = cursorPagination({
 			pageInfo: {
 				total: true,
+				hasMore: true,
 				hasNext: true,
 				hasPrevious: true,
-				remaining: true
+				remaining: true,
+				remainingBefore: true,
+				remainingAfter: true
 			}
 		});
 
@@ -125,72 +128,102 @@ module.exports = knex => {
 					return query.clone().limit(5).cursorPage();
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.false;
 					expect(pageInfo.remaining).to.equal(15);
+					expect(pageInfo.remainingAfter).to.equal(15);
+					expect(pageInfo.remainingBefore).to.equal(0);
 					expect(results).to.deep.equal(expected.slice(0, 5));
 					return query.clone().limit(5).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.true;
 					expect(pageInfo.remaining).to.equal(10);
+					expect(pageInfo.remainingAfter).to.equal(10);
+					expect(pageInfo.remainingBefore).to.equal(5);
 					expect(results).to.deep.equal(expected.slice(5, 10));
 					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
 					expect(pageInfo.hasNext).to.be.false;
 					expect(pageInfo.hasPrevious).to.be.true;
 					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(0);
+					expect(pageInfo.remainingBefore).to.equal(10);
 					expect(results).to.deep.equal(expected.slice(10, 20));
 					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
 					expect(pageInfo.hasNext).to.be.false;
 					expect(pageInfo.hasPrevious).to.be.true;
 					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(0);
+					expect(pageInfo.remainingBefore).to.equal(20);
 					expect(results).to.deep.equal([]);
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
 					expect(pageInfo.hasNext).to.be.false;
 					expect(pageInfo.hasPrevious).to.be.true;
 					expect(pageInfo.remaining).to.equal(15);
+					expect(pageInfo.remainingAfter).to.equal(0);
+					expect(pageInfo.remainingBefore).to.equal(15);
 					expect(results).to.deep.equal(expected.slice(15, 20));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.true;
 					expect(pageInfo.remaining).to.equal(10);
+					expect(pageInfo.remainingAfter).to.equal(5);
+					expect(pageInfo.remainingBefore).to.equal(10);
 					expect(results).to.deep.equal(expected.slice(10, 15));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.true;
 					expect(pageInfo.remaining).to.equal(5);
+					expect(pageInfo.remainingAfter).to.equal(10);
+					expect(pageInfo.remainingBefore).to.equal(5);
 					expect(results).to.deep.equal(expected.slice(5, 10));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.false;
 					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(15);
+					expect(pageInfo.remainingBefore).to.equal(0);
 					expect(results).to.deep.equal(expected.slice(0, 5));
 					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.false;
 					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(20);
+					expect(pageInfo.remainingBefore).to.equal(0);
 					expect(results).to.deep.equal([]);
 					return query.clone().limit(5).cursorPage(pageInfo.next);
 				})
 				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
 					expect(pageInfo.hasNext).to.be.true;
 					expect(pageInfo.hasPrevious).to.be.false;
 					expect(pageInfo.remaining).to.equal(15);
+					expect(pageInfo.remainingAfter).to.equal(15);
+					expect(pageInfo.remainingBefore).to.equal(0);
 					expect(results).to.deep.equal(expected.slice(0, 5));
 				});
 		});
@@ -252,6 +285,36 @@ module.exports = knex => {
 				.then(({results, pageInfo}) => {
 					expect(results).to.deep.equal(expected.slice(0, 5));
 					return query.clone().cursorPage(pageInfo.next);
+				});
+		});
+
+		it('cursorPage does not have to be last call', () => {
+			const expectedQuery = Movie.query()
+				.orderByCoalesce('title', 'desc')
+				.orderBy('id', 'asc');
+			const cursorPage = (...args) => Movie.query()
+				.cursorPage(...args)
+				.orderByCoalesce('title', 'desc')
+				.orderBy('id', 'asc')
+				.limit(5);
+
+			let expected;
+
+			return expectedQuery
+				.then(res => {
+					expected = res;
+					return cursorPage();
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(0, 5));
+					return cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(5, 10));
+					return cursorPage(pageInfo.previous, true);
+				})
+				.then(({results}) => {
+					expect(results).to.deep.equal(expected.slice(0, 5));
 				});
 		});
 
