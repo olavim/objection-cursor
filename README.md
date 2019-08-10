@@ -158,6 +158,7 @@ class Movie extends cursorMixin(Model) {
     next: // Provide this in the next `cursorPage` call to fetch items after current results.
     previous: // Provide this in the next `previousCursorPage` call to fetch items before current results.
 
+    hasMore: // If `options.pageInfo.hasMore` is true.
     hasNext: // If `options.pageInfo.hasNext` is true.
     hasPrevious: // If `options.pageInfo.hasPrevious` is true.
     remaining: // If `options.pageInfo.remaining` is true. Number of items remaining (after or before `results`).
@@ -199,6 +200,7 @@ Values shown are defaults.
     remaining: false, // Remaining amount of rows in *this* direction
     remainingBefore: false, // Remaining amount of rows before current results
     remainingAfter: false, // Remaining amount of rows after current results
+    hasMore: false, // Are there more rows in this direction?
     hasNext: false, // Are there rows after current results?
     hasPrevious: false, // Are there rows before current results?
   }
@@ -211,11 +213,12 @@ Values shown are defaults.
 - `pageInfo.remaining` requires additional query (**B**)
 - `pageInfo.remainingBefore` requires additional queries (**A**, **B**)
 - `pageInfo.remainingAfter` requires additional queries (**A**, **B**)
+- `pageInfo.hasMore` requires additional query (**B**)
 - `pageInfo.hasNext` requires additional queries (**A**, **B**)
 - `pageInfo.hasPrevious` requires additional queries (**A**, **B**)
 
 **`remaining` vs `remainingBefore` and `remainingAfter`:**
 
-`remaining` only tells you the remaining results in *current* direction and is therefore less descriptive as `remainingBefore` and `remainingAfter` combined. However, in cases where it's enough to know if there are "more" results, using only the `remaining` information will use one less query than using any one of `remainingBefore`, `remainingAfter`, `hasPrevious`, and `hasNext`.
-
+`remaining` only tells you the remaining results in *current* direction and is therefore less descriptive as `remainingBefore` and `remainingAfter` combined. However, in cases where it's enough to know if there are "more" results, using only the `remaining` information will use one less query than using any one of `remainingBefore`, `remainingAfter`. Similarly `hasMore` uses one less query than `hasPrevious`, and `hasNext`.
+ 
 However, if `total` is used, then using `remaining` no longer gives you the benefit of using one less query.
