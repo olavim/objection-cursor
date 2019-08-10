@@ -155,13 +155,15 @@ class Movie extends cursorMixin(Model) {
 {
   results: // Resulted rows.
   pageInfo: {
-    next: // Provide this in the next `cursorPage` call to fetch items after the last ones.
-    previous: // Provide this in the next `previousCursorPage` call to fetch items before the last ones.
+    next: // Provide this in the next `cursorPage` call to fetch items after current results.
+    previous: // Provide this in the next `previousCursorPage` call to fetch items before current results.
 
     hasNext: // If `options.pageInfo.hasNext` is true.
     hasPrevious: // If `options.pageInfo.hasPrevious` is true.
     remaining: // If `options.pageInfo.remaining` is true. Number of items remaining (after or before `results`).
-    total: // If `options.pageInfo.total` is true. Total number of rows (without limit).
+    remainingBefore: // If `options.pageInfo.remainingBefore` is true. Number of items remaining before `results`.
+    remainingAfter: // If `options.pageInfo.remainingAfter` is true. Number of items remaining after `results`.
+    total: // If `options.pageInfo.total` is true. Total number of available rows (without limit).
   }
 }
 ```
@@ -195,15 +197,25 @@ Values shown are defaults.
     // When true, these values will be added to `pageInfo` in query response
     total: false, // Total amount of rows
     remaining: false, // Remaining amount of rows in *this* direction
+    remainingBefore: false, // Remaining amount of rows before current results
+    remainingAfter: false, // Remaining amount of rows after current results
     hasNext: false, // Are there rows after current results?
     hasPrevious: false, // Are there rows before current results?
   }
 }
 ```
 
-**Notes:**
+### Notes
 
-- `pageInfo.total` requires an additional query.
-- `pageInfo.remaining` requires and additional query.
-- `pageInfo.hasNext` requires the same queries as `pageInfo.total` and `pageInfo.remaining`.
-- `pageInfo.hasPrevious` requires the same queries as `pageInfo.total` and `pageInfo.remaining`.
+- `pageInfo.total` requires additional query (**A**)
+- `pageInfo.remaining` requires additional query (**B**)
+- `pageInfo.remainingBefore` requires additional queries (**A**, **B**)
+- `pageInfo.remainingAfter` requires additional queries (**A**, **B**)
+- `pageInfo.hasNext` requires additional queries (**A**, **B**)
+- `pageInfo.hasPrevious` requires additional queries (**A**, **B**)
+
+**`remaining` vs `remainingBefore` and `remainingAfter`:**
+
+`remaining` only tells you the remaining results in *current* direction and is therefore less descriptive as `remainingBefore` and `remainingAfter` combined. However, in cases where it's enough to know if there are "more" results, using only the `remaining` information will use one less query than using any one of `remainingBefore`, `remainingAfter`, `hasPrevious`, and `hasNext`.
+
+However, if `total` is used, then using `remaining` no longer gives you the benefit of using one less query.

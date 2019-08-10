@@ -37,6 +37,57 @@ module.exports = knex => {
 				});
 		});
 
+		it('has remainingBefore', () => {
+			class Movie extends cursorPagination({pageInfo: {remainingBefore: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.limit(10)
+				.then(({pageInfo}) => {
+					expect(pageInfo.remainingBefore).to.equal(0);
+				});
+		});
+
+		it('has remainingAfter', () => {
+			class Movie extends cursorPagination({pageInfo: {remainingAfter: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.limit(10)
+				.then(({pageInfo}) => {
+					expect(pageInfo.remainingAfter).to.equal(10);
+				});
+		});
+
+		it('has hasMore', () => {
+			class Movie extends cursorPagination({pageInfo: {hasMore: true}})(Model) {
+				static get tableName() {
+					return 'movies';
+				}
+			}
+
+			return Movie
+				.query(knex)
+				.orderBy('id', 'asc')
+				.cursorPage()
+				.limit(10)
+				.then(({pageInfo}) => {
+					expect(pageInfo.hasMore).to.equal(true);
+				});
+		});
+
 		it('has hasNext', () => {
 			class Movie extends cursorPagination({pageInfo: {hasNext: true}})(Model) {
 				static get tableName() {
