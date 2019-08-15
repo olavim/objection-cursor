@@ -1,6 +1,7 @@
 'use strict';
 
 const Knex = require('knex');
+const moment = require('moment');
 const cursorTests = require('./cursor');
 const optionsTests = require('./options');
 const referenceTests = require('./ref');
@@ -21,10 +22,15 @@ const generateMovies = num => {
 			title: key % 10 === 0 ? null : `movie-${padStart(String(key % 15), 2, '0')}`,
 			alt_title: `film-${padStart(String(key % 15), 2, '0')}`,
 			author: `author-${key % 5}`,
+			createdAt: new Date(d.getTime() + key).toISOString(),
 			// Add some null values
 			date: key % 3 === 0 ? null : new Date(d.getTime() + (key % 7)).toISOString()
 		};
 	});
+
+	// Make some createdAt same
+	arr[num - 1].createdAt = arr[num - 3].createdAt;
+	arr[num - 2].createdAt = arr[num - 3].createdAt;
 
 	return arr;
 };
@@ -38,6 +44,14 @@ describe('database tests', () => {
 		}
 	}, {
 		client: 'pg',
+		connection: {
+			host: '127.0.0.1',
+			user: 'cursortest',
+			database: 'objection-cursor-test'
+		}
+	}, {
+		client: 'mysql',
+		version: '5.7',
 		connection: {
 			host: '127.0.0.1',
 			user: 'cursortest',
@@ -62,8 +76,15 @@ describe('database tests', () => {
 					table.increments();
 					table.string('title');
 					table.string('author');
-					table.dateTime('date');
 					table.string('alt_title');
+
+					if (config.client === 'mysql') {
+						table.specificType('date', 'DATETIME(3)');
+						table.specificType('createdAt', 'DATETIME(3)');
+					} else {
+						table.dateTime('date');
+						table.dateTime('createdAt');
+					}
 				});
 			});
 
@@ -71,25 +92,34 @@ describe('database tests', () => {
 				return knex.schema.createTable('movie_refs', table => {
 					table.increments();
 					table.integer('movie_id');
-					table.jsonb('data');
+					table.json('data');
 				});
 			});
 
 			before(() => {
-				return knex('movies').insert(generateMovies(20));
-			});
+				const movies = generateMovies(20);
 
-			before(() => {
-				return knex('movie_refs').insert(generateMovies(20).map((movie, id) => ({
-					movie_id: id + 1,
-					data: {title: movie.title}
-				})));
+				if (config.client === 'mysql') {
+					for (const movie of movies) {
+						movie.date = movie.date && moment(movie.date).format('YYYY-MM-DD HH:mm:ss.SSS');
+						movie.createdAt = moment(movie.createdAt).format('YYYY-MM-DD HH:mm:ss.SSS');
+					}
+				}
+
+				return knex('movies').insert(movies);
 			});
 
 			cursorTests(knex);
 			optionsTests(knex);
 
-			if (config.client !== 'sqlite3') {
+			if (config.client === 'pg') {
+				before(() => {
+					return knex('movie_refs').insert(generateMovies(20).map((movie, id) => ({
+						movie_id: id + 1,
+						data: {title: movie.title}
+					})));
+				});
+
 				referenceTests(knex);
 			}
 		});

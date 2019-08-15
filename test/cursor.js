@@ -104,11 +104,15 @@ module.exports = knex => {
 		});
 
 		it('four order by cols: asc,desc,desc,asc', () => {
+			const datetimeType = knex.client.config.client === 'mysql'
+				? 'datetime'
+				: 'timestamptz';
+
 			const query = Movie
 				.query()
 				.orderByCoalesce('title', 'asc')
 				.orderBy('author', 'desc')
-				.orderByCoalesce('date', 'desc', raw('CAST(? as timestamptz)', '1970-1-1'))
+				.orderByCoalesce('date', 'desc', raw(`CAST(? as ${datetimeType})`, '1970-1-1'))
 				.orderBy('id', 'asc');
 
 			return test(query, [2, 5]);
@@ -329,10 +333,36 @@ module.exports = knex => {
 		it('order by coalesce raw', () => {
 			const query = Movie
 				.query()
-				.orderByCoalesce('title', 'desc', raw('? || ?', ['ab', 'c']))
+				.orderByCoalesce('title', 'desc', raw('?', ['ab']))
 				.orderBy('id', 'asc');
 
 			return test(query, [2, 5]);
+		});
+
+		it('order by date column', () => {
+			const query = Movie
+				.query()
+				.orderBy('createdAt', 'asc')
+				.orderBy('id', 'asc');
+
+			let expected;
+
+			return query.clone()
+				.then(res => {
+					expected = res;
+					return query.clone().limit(9).cursorPage();
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(0, 9));
+					return query.clone().limit(9).cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(9, 18));
+					return query.clone().limit(9).cursorPage(pageInfo.next);
+				})
+				.then(({results}) => {
+					expect(results).to.deep.equal(expected.slice(18, 20));
+				});
 		});
 	});
 }
