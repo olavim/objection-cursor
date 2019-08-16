@@ -24,7 +24,7 @@ ajv-keywords@^2.1.0:
   version "2.1.1"
   resolved "https://registry.npmjs.org/ajv-keywords/-/ajv-keywords-2.1.1.tgz#617997fc5f60576894c435f940d819e135b80762"
 
-ajv@^5.2.3, ajv@^5.3.0:
+ajv@^5.1.1, ajv@^5.2.3, ajv@^5.3.0:
   version "5.5.2"
   resolved "https://registry.npmjs.org/ajv/-/ajv-5.5.2.tgz#73b5eeca3fab653e3d3f9422b341ad42205dc965"
   dependencies:
@@ -32,15 +32,6 @@ ajv@^5.2.3, ajv@^5.3.0:
     fast-deep-equal "^1.0.0"
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.3.0"
-
-ajv@^6.1.1:
-  version "6.5.2"
-  resolved "https://registry.npmjs.org/ajv/-/ajv-6.5.2.tgz#678495f9b82f7cca6be248dd92f59bff5e1f4360"
-  dependencies:
-    fast-deep-equal "^2.0.1"
-    fast-json-stable-stringify "^2.0.0"
-    json-schema-traverse "^0.4.1"
-    uri-js "^4.2.1"
 
 ansi-escapes@^3.0.0:
   version "3.1.0"
@@ -165,6 +156,16 @@ base@^0.11.1:
     isobject "^3.0.1"
     mixin-deep "^1.2.0"
     pascalcase "^0.1.1"
+
+bignumber.js@7.2.1:
+  version "7.2.1"
+  resolved "https://registry.npmjs.org/bignumber.js/-/bignumber.js-7.2.1.tgz#80c048759d826800807c4bfd521e50edbba57a5f"
+  integrity sha512-S4XzBk5sMB+Rcb/LNcpzXr57VRTxgAvaAEDAl1AwRx27j00hT84O6OkteE7u8UB3NuaaygCRrEpqox4uDOrbdQ==
+
+bluebird@^3.5.0:
+  version "3.5.5"
+  resolved "https://registry.npmjs.org/bluebird/-/bluebird-3.5.5.tgz#a8d0afd73251effbbd5fe384a77d73003c17a71f"
+  integrity sha512-5am6HnnfN+urzt4yfg7IgTbotDjIT/u8AJpEt0sIU9FtXfVeezXAPKswrG+xKUCOYAINpSdgZVDU6QFh+cuH3w==
 
 bluebird@^3.5.1:
   version "3.5.1"
@@ -612,10 +613,6 @@ fast-deep-equal@^1.0.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-1.1.0.tgz#c053477817c86b51daa853c81e059b733d023614"
 
-fast-deep-equal@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz#7b05218ddf9667bf7f370bf7fdb2cb15fdd0aa49"
-
 fast-json-stable-stringify@^2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/fast-json-stable-stringify/-/fast-json-stable-stringify-2.0.0.tgz#d5142c0caee6b1189f87d3a76111064f86c8bbf2"
@@ -1056,10 +1053,6 @@ json-schema-traverse@^0.3.0:
   version "0.3.1"
   resolved "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.3.1.tgz#349a6d44c53a51de89b40805c5d5e59b417d3340"
 
-json-schema-traverse@^0.4.1:
-  version "0.4.1"
-  resolved "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz#69f6a87d9513ab8bb8fe63bdb0979c448e684660"
-
 json-stable-stringify-without-jsonify@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/json-stable-stringify-without-jsonify/-/json-stable-stringify-without-jsonify-1.0.1.tgz#9db7b59496ad3f3cfef30a75142d2d930ad72651"
@@ -1230,6 +1223,11 @@ mocha@^5.2.0:
     mkdirp "0.5.1"
     supports-color "5.4.0"
 
+moment@^2.24.0:
+  version "2.24.0"
+  resolved "https://registry.npmjs.org/moment/-/moment-2.24.0.tgz#0d055d53f5052aa653c9f6eb68bb5d12bf5c2b5b"
+  integrity sha512-bV7f+6l2QigeBBZSM/6yTNq4P2fNpSWj/0e7jQcy87A8e7o2nAfP/34/2ky5Vw4B9S446EtIhodAzkFCcR4dQg==
+
 ms@2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz#5608aeadfc00be6c2901df5f9861788de0d597c8"
@@ -1237,6 +1235,16 @@ ms@2.0.0:
 mute-stream@0.0.7:
   version "0.0.7"
   resolved "https://registry.npmjs.org/mute-stream/-/mute-stream-0.0.7.tgz#3075ce93bc21b8fab43e1bc4da7e8115ed1e7bab"
+
+mysql@^2.17.1:
+  version "2.17.1"
+  resolved "https://registry.npmjs.org/mysql/-/mysql-2.17.1.tgz#62bba4a039a9b2f73638cd1652ce50fc6f682899"
+  integrity sha512-7vMqHQ673SAk5C8fOzTG2LpPcf3bNt0oL3sFpxPEEFp1mdlDcrLK0On7z8ZYKaaHrHwNcQ/MTUz7/oobZ2OyyA==
+  dependencies:
+    bignumber.js "7.2.1"
+    readable-stream "2.3.6"
+    safe-buffer "5.1.2"
+    sqlstring "2.3.1"
 
 nan@~2.10.0:
   version "2.10.0"
@@ -1357,11 +1365,12 @@ object.pick@^1.2.0, object.pick@^1.3.0:
     isobject "^3.0.1"
 
 objection@^0.9.6:
-  version "1.1.10"
-  resolved "https://registry.npmjs.org/objection/-/objection-1.1.10.tgz#337af7f8677dee31b86a3ef39b2257bbf1a9d04c"
+  version "0.9.4"
+  resolved "https://registry.npmjs.org/objection/-/objection-0.9.4.tgz#708314fd2bb5bb3d5eb83c5badd5d9a1106ecb59"
+  integrity sha512-wTfd6dPRnXFnknccXe77565IWjxaTElwa4skGKojgSSBFz9QH73NQd2Ag5klcbTmTsgJ0EXDtumm3+ibuUj3Xw==
   dependencies:
-    ajv "^6.1.1"
-    bluebird "^3.5.1"
+    ajv "^5.1.1"
+    bluebird "^3.5.0"
     lodash "^4.17.4"
 
 once@^1.3.0:
@@ -1543,10 +1552,6 @@ pseudomap@^1.0.2:
   version "1.0.2"
   resolved "https://registry.npmjs.org/pseudomap/-/pseudomap-1.0.2.tgz#f052a28da70e618917ef0a8ac34c1ae5a68286b3"
 
-punycode@^2.1.0:
-  version "2.1.1"
-  resolved "https://registry.npmjs.org/punycode/-/punycode-2.1.1.tgz#b58b010ac40c22c5657616c8d2c2c02c7bf479ec"
-
 ramda@^0.25.0:
   version "0.25.0"
   resolved "https://registry.npmjs.org/ramda/-/ramda-0.25.0.tgz#8fdf68231cffa90bc2f9460390a0cb74a29b29a9"
@@ -1560,7 +1565,7 @@ rc@^1.2.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-readable-stream@^2.0.6, readable-stream@^2.2.2:
+readable-stream@2.3.6, readable-stream@^2.0.6, readable-stream@^2.2.2:
   version "2.3.6"
   resolved "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.6.tgz#b11c27d88b8ff1fbe070643cf94b0c79ae1b0aaf"
   dependencies:
@@ -1662,7 +1667,7 @@ rx-lite@*, rx-lite@^4.0.8:
   version "4.0.8"
   resolved "https://registry.npmjs.org/rx-lite/-/rx-lite-4.0.8.tgz#0b1e11af8bc44836f04a6407e92da42467b79444"
 
-safe-buffer@^5.1.2, safe-buffer@~5.1.0, safe-buffer@~5.1.1:
+safe-buffer@5.1.2, safe-buffer@^5.1.2, safe-buffer@~5.1.0, safe-buffer@~5.1.1:
   version "5.1.2"
   resolved "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.1.2.tgz#991ec69d296e0313747d59bdfd2b745c35f8828d"
 
@@ -1797,6 +1802,11 @@ sqlite3@^4.0.1:
   dependencies:
     nan "~2.10.0"
     node-pre-gyp "~0.10.1"
+
+sqlstring@2.3.1:
+  version "2.3.1"
+  resolved "https://registry.npmjs.org/sqlstring/-/sqlstring-2.3.1.tgz#475393ff9e91479aea62dcaf0ca3d14983a7fb40"
+  integrity sha1-R1OT/56RR5rqYtyvDKPRSYOn+0A=
 
 static-extend@^0.1.1:
   version "0.1.2"
@@ -1954,12 +1964,6 @@ unset-value@^1.0.0:
   dependencies:
     has-value "^0.3.1"
     isobject "^3.0.0"
-
-uri-js@^4.2.1:
-  version "4.2.2"
-  resolved "https://registry.npmjs.org/uri-js/-/uri-js-4.2.2.tgz#94c540e1ff772956e2299507c010aea6c8838eb0"
-  dependencies:
-    punycode "^2.1.0"
 
 urix@^0.1.0:
   version "0.1.0"
