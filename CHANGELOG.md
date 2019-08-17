@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.0.0-alpha.3"></a>
+# [1.0.0-alpha.3](https://github.com/olavim/objection-cursor/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2019-08-17)
+
+
+### Bug Fixes
+
+* serialize empty cursor ([1940817](https://github.com/olavim/objection-cursor/commit/1940817))
+
+
+
 <a name="1.0.0-alpha.2"></a>
 # [1.0.0-alpha.2](https://github.com/olavim/objection-cursor/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2019-08-16)
 
