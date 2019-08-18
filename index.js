@@ -1,6 +1,17 @@
-const {get} = require('lodash');
+const {get, castArray} = require('lodash');
 const {serializeCursor, deserializeCursor} = require('./lib/serialize');
 const {columnToProperty} = require('./lib/convert');
+
+const FLAG_ONBUILD = '__cursor_flag_onBuild';
+const FLAG_ONBUILD_ORDERBY = '__cursor_flag_onBuild_orderBy';
+
+const FLAG_ORIGINAL_BUILDER = '__cursor_flag_original_builder';
+const FLAG_CURSORPAGE = '__cursor_flag_cursorPage';
+const FLAG_ORDERBY = '__cursor_flag_orderBy';
+const FLAG_ORDERBYCOALESCE = '__cursor_flag_orderByCoalesce';
+
+const DATA_ORDERBY = '__cursor_data_orderBy';
+const DATA_ORDERBYCOALESCE = '__cursor_data_orderByCoalesce';
 
 function stringifyObjectionBuilder(builder, val) {
 	if (val && typeof val.toKnexRaw === 'function') {
@@ -15,10 +26,12 @@ function stringifyObjectionBuilder(builder, val) {
 	return val;
 }
 
-function getCoalescedOp(builder, coalesceObj = {}, {col, prop, val, dir}) {
+function getCoalescedOp(builder, coalesceObj = {}, {col, prop, dir}, item) {
+	let val = get(item, prop, null);
+
 	if (coalesceObj[prop]) {
 		const model = builder.modelClass();
-		const mappedCoalesce = coalesceObj[prop].map(val => stringifyObjectionBuilder(builder, val));
+		const mappedCoalesce = coalesceObj[prop].map(v => stringifyObjectionBuilder(builder, v));
 		const coalesceBindingsStr = mappedCoalesce.map(() => '?');
 		col = stringifyObjectionBuilder(builder, col);
 		val = stringifyObjectionBuilder(builder, val);
@@ -27,39 +40,6 @@ function getCoalescedOp(builder, coalesceObj = {}, {col, prop, val, dir}) {
 	}
 
 	return {col, prop, val, dir};
-}
-
-function addWhereComposites(origBuilder, builder, composites, ctx) {
-	for (const op of composites) {
-		const {col, val} = getCoalescedOp(origBuilder, ctx.coalesce, op);
-		builder.andWhere(col, val);
-	}
-}
-
-function addWhereStmts(origBuilder, builder, ops, composites, ctx) {
-	if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
-		return builder.where(false);
-	}
-
-	const {col, val, dir} = getCoalescedOp(origBuilder, ctx.coalesce, ops[0]);
-	const comp = dir === 'asc' ? '>' : '<';
-
-	if (ops.length === 1) {
-		return builder.where(col, comp, val);
-	}
-
-	composites = [ops[0], ...composites];
-
-	builder.andWhere(function () {
-		this.where(col, comp, val);
-		this.orWhere(function () {
-			addWhereComposites(origBuilder, this, composites, ctx);
-			this.andWhere(function () {
-				// Add where statements recursively
-				addWhereStmts(origBuilder, this, ops.slice(1), composites, ctx);
-			});
-		});
-	})
 }
 
 const mixin = options => {
@@ -79,80 +59,43 @@ const mixin = options => {
 
 	return Base => {
 		class CursorQueryBuilder extends Base.QueryBuilder {
-			/* Objection converts reference builders to raw builders, so to support references,
-			 * we need to save the reference builder.
-			 */
 			orderBy(col, dir = 'asc') {
-				const ctx = this.context();
-
-				if (ctx.coalesceBuilding || ctx.orderByBuilding) {
+				if (this.context()[FLAG_ONBUILD] || this.context()[FLAG_ONBUILD_ORDERBY]) {
+					// orderBy was called from an onBuild handler
 					return super.orderBy(col, dir);
-				} else {
-					const orderBy = ctx.orderBy || [];
-					orderBy.push({col, dir});
-					this.mergeContext({orderBy});
 				}
+
+				const orderByData = this.context()[DATA_ORDERBY] || [];
+				this.mergeContext({
+					[FLAG_ORDERBY]: true,
+					[DATA_ORDERBY]: [...orderByData, {col, dir}]
+				});
 
 				return this
 					.onBuild(builder => {
-						if (!builder.context().coalesce && !builder.context().orderByBuilding) {
-							builder.mergeContext({orderByBuilding: true});
-
-							for (let {col, dir} of builder.context().orderBy) {
-								builder.orderBy(col, dir);
-							}
-
-							builder.mergeContext({orderByBuilding: false});
+						// If `cursorPage` was not called, add orderBy statements here
+						if (!builder.context()[FLAG_CURSORPAGE]) {
+							this._buildOrderBy(builder);
 						}
 					});
 			}
 
 			orderByCoalesce(col, dir = 'asc', coalesceValues = ['']) {
-				const orderBy = this.context().orderBy || [];
-				orderBy.push({col, dir});
-				this.mergeContext({orderBy});
-
-				const model = this.modelClass();
-
-				if (!Array.isArray(coalesceValues)) {
-					coalesceValues = [coalesceValues];
-				}
+				const orderByData = this.context()[DATA_ORDERBY] || [];
 
 				this.mergeContext({
-					coalesce: Object.assign({}, this.context().coalesce, {
-						[columnToProperty(model, col)]: coalesceValues
-					}),
-					onBuildOrderByCoalesce: builder => {
-						const context = builder.context();
-						builder.mergeContext({coalesceBuilding: true});
-
-						for (let {col, dir} of context.orderBy) {
-							const coalesce = context.coalesce[columnToProperty(model, col)];
-
-							if (coalesce) {
-								const mappedCoalesce = coalesce.map(val => stringifyObjectionBuilder(builder, val));
-								const colStr = stringifyObjectionBuilder(builder, col);
-
-								const coalesceBindingsStr = coalesce.map(() => '?').join(', ');
-
-								builder.orderBy(
-									model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [colStr].concat(mappedCoalesce)),
-									dir
-								)
-							} else {
-								builder.orderBy(col, dir);
-							}
-						}
-
-						builder.mergeContext({coalesceBuilding: false});
-					}
+					[FLAG_ORDERBYCOALESCE]: true,
+					[DATA_ORDERBY]: [...orderByData, {col, dir}],
+					[DATA_ORDERBYCOALESCE]: Object.assign({}, this.context()[DATA_ORDERBYCOALESCE], {
+						[columnToProperty(this.modelClass(), col)]: castArray(coalesceValues)
+					})
 				});
 
 				return this
 					.onBuild(builder => {
-						// If `cursorPage` was not called, add order by -statements here
-						if (!builder.context().cursorPage) {
-							builder.context().onBuildOrderByCoalesce(builder);
+						// If `orderBy` or `cursorPage` was not called, add orderBy statements here
+						if (!builder.context()[FLAG_ORDERBY] && !builder.context()[FLAG_CURSORPAGE]) {
+							this._buildOrderBy(builder);
 						}
 					});
 			}
@@ -162,60 +105,38 @@ const mixin = options => {
 				let orderByOps;
 				let item;
 
-				this.mergeContext({
-					cursorPage: true, // Flag notifying that `cursorPage` was called
-					before
-				});
+				this.mergeContext({[FLAG_CURSORPAGE]: true});
 
 				return this
 					.onBuild(builder => {
 						const ctx = () => builder.context();
 
-						if (!ctx().cursorBuilding && !ctx().origBuilder) {
-							builder.mergeContext({cursorBuilding: true});
+						if (!ctx()[FLAG_ONBUILD] && !ctx()[FLAG_ORIGINAL_BUILDER]) {
+							builder.mergeContext({[FLAG_ONBUILD]: true});
 
-							if (ctx().onBuildOrderByCoalesce) {
-								ctx().onBuildOrderByCoalesce(builder);
-							}
+							this._buildOrderBy(builder);
 
-							origBuilder = builder.clone().mergeContext({origBuilder: true});
+							// Save current builder (before where statements) for pageInfo (total, remaining, etc.)
+							origBuilder = builder.clone().mergeContext({[FLAG_ORIGINAL_BUILDER]: true});
 
 							if (!builder.has(/limit/)) {
 								builder.limit(options.limit);
 							}
 
-							orderByOps = ctx().orderBy.map(({col, dir}) => ({
-								col,
-								prop: columnToProperty(this.modelClass(), col),
-								dir: (dir || 'asc').toLowerCase()
-							}));
+							orderByOps = this._getOrderByOperations(before);
 
+							// Get partial item from cursor
+							item = deserializeCursor(orderByOps, cursor);
+							this._addWhereStmts(builder, orderByOps, item);
+
+							// Swap orderBy directions when going backward
 							if (before) {
 								builder.forEachOperation(/orderBy/, op => {
 									op.args[1] = op.args[1] === 'asc' ? 'desc' : 'asc';
 								});
 							}
 
-							// Get partial item from cursor
-							item = deserializeCursor(orderByOps, cursor);
-
-							if (item) {
-								addWhereStmts(
-									builder,
-									builder,
-									orderByOps.map(({col, prop, dir}) => ({
-										col,
-										prop,
-										// If going backward: asc => desc, desc => asc
-										dir: before === (dir === 'asc') ? 'desc' : 'asc',
-										val: get(item, prop, null)
-									})),
-									[],
-									ctx()
-								);
-							}
-
-							builder.mergeContext({cursorBuilding: false});
+							builder.mergeContext({[FLAG_ONBUILD]: false});
 						}
 					})
 					.runAfter(models => {
@@ -244,10 +165,7 @@ const mixin = options => {
 						const info = options.pageInfo;
 
 						// Check if at least one given option is enabled
-						const isEnabled = opts => {
-							opts = Array.isArray(opts) ? opts : [opts];
-							return opts.some(opt => info[opt]);
-						}
+						const isEnabled = opts => castArray(opts).some(opt => info[opt]);
 
 						const setIfEnabled = (opt, val) => {
 							res.pageInfo[opt] = info[opt] ? val : res.pageInfo[opt];
@@ -286,6 +204,89 @@ const mixin = options => {
 
 			previousCursorPage(cursor) {
 				return this.cursorPage(cursor, true);
+			}
+
+			_getOrderByOperations(before) {
+				return this.context()[DATA_ORDERBY].map(({col, dir = 'asc'}) => {
+					return {
+						col,
+						prop: columnToProperty(this.modelClass(), col),
+						// If going backward: asc => desc, desc => asc
+						dir: before === (dir.toLowerCase() === 'asc') ? 'desc' : 'asc'
+					};
+				});
+			}
+
+			_addWhereStmts(builder, ops, item, composites = []) {
+				if (!item) {
+					return;
+				}
+
+				if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
+					return builder.where(false);
+				}
+
+				const {col, val, dir} = getCoalescedOp(this, builder.context()[DATA_ORDERBYCOALESCE], ops[0], item);
+				const comp = dir === 'asc' ? '>' : '<';
+
+				if (ops.length === 1) {
+					return builder.where(col, comp, val);
+				}
+
+				const self = this;
+				composites = [ops[0], ...composites];
+
+				builder.andWhere(function () {
+					this.where(col, comp, val);
+					this.orWhere(function () {
+						self._addWhereComposites(this, composites, item);
+						this.andWhere(function () {
+							// Add where statements recursively
+							self._addWhereStmts(this, ops.slice(1), item, composites);
+						});
+					});
+				})
+			}
+
+			_addWhereComposites(builder, composites, item) {
+				for (const op of composites) {
+					const {col, val} = getCoalescedOp(this, builder.context()[DATA_ORDERBYCOALESCE], op, item);
+					builder.andWhere(col, val);
+				}
+			}
+
+			_buildOrderBy(builder) {
+				const ctx = builder.context();
+				if (!ctx[FLAG_ONBUILD_ORDERBY]) {
+					builder.mergeContext({[FLAG_ONBUILD_ORDERBY]: true});
+
+					if (ctx[DATA_ORDERBYCOALESCE]) {
+						for (let {col, dir} of ctx[DATA_ORDERBY]) {
+							const model = this.modelClass();
+							const coalesce = ctx[DATA_ORDERBYCOALESCE][columnToProperty(model, col)];
+
+							if (coalesce) {
+								const mappedCoalesce = coalesce.map(val => stringifyObjectionBuilder(builder, val));
+								const colStr = stringifyObjectionBuilder(builder, col);
+
+								const coalesceBindingsStr = coalesce.map(() => '?').join(', ');
+
+								builder.orderBy(
+									model.raw(`COALESCE(??, ${coalesceBindingsStr})`, [colStr].concat(mappedCoalesce)),
+									dir
+								)
+							} else {
+								builder.orderBy(col, dir);
+							}
+						}
+					} else {
+						for (let {col, dir} of ctx[DATA_ORDERBY]) {
+							builder.orderBy(col, dir);
+						}
+					}
+
+					builder.mergeContext({[FLAG_ONBUILD_ORDERBY]: false});
+				}
 			}
 		}
 
