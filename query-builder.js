@@ -123,13 +123,10 @@ module.exports = function (options, Base) {
 				return;
 			}
 
-			if (ops.length === 0 || (ops.length === 1 && ops[0].val === null)) {
-				return builder.where(false);
-			}
-
 			const {col, val, dir} = getCoalescedOp(this, builder.context()[DATA_ORDERBYCOALESCE], ops[0], item);
 			const comp = dir === 'asc' ? '>' : '<';
 
+			// If we get here, then `ops.length` is at least 1, since otherwise `item` is null
 			if (ops.length === 1) {
 				return builder.where(col, comp, val);
 			}
@@ -150,8 +147,9 @@ module.exports = function (options, Base) {
 		}
 
 		_addWhereComposites(builder, composites, item) {
+			const orderByCoalesceData = builder.context()[DATA_ORDERBYCOALESCE];
 			for (const op of composites) {
-				const {col, val} = getCoalescedOp(this, builder.context()[DATA_ORDERBYCOALESCE], op, item);
+				const {col, val} = getCoalescedOp(this, orderByCoalesceData, op, item);
 				builder.andWhere(col, val);
 			}
 		}
@@ -160,7 +158,7 @@ module.exports = function (options, Base) {
 			lockStatement(builder, FLAG_ONBUILD_ORDERBY, () => {
 				const ctx = builder.context();
 				const model = this.modelClass();
-				const orderByData = ctx[DATA_ORDERBY];
+				const orderByData = ctx[DATA_ORDERBY] || [];
 				const orderByCoalesceData = ctx[DATA_ORDERBYCOALESCE];
 
 				for (let {col, dir} of orderByData) {

@@ -276,20 +276,9 @@ module.exports = knex => {
 			const query = CaseMovie
 				.query()
 				.orderBy('alt_title')
-				.orderBy('id', 'asc')
-				.limit(5);
+				.orderBy('id', 'asc');
 
-			let expected;
-
-			return query.clone()
-				.then(res => {
-					expected = res;
-					return query.clone().cursorPage();
-				})
-				.then(({results, pageInfo}) => {
-					expect(results).to.deep.equal(expected.slice(0, 5));
-					return query.clone().cursorPage(pageInfo.next);
-				});
+			return test(query, [2, 5]);
 		});
 
 		it('cursorPage does not have to be last call', () => {
@@ -345,23 +334,25 @@ module.exports = knex => {
 				.orderBy('createdAt', 'asc')
 				.orderBy('id', 'asc');
 
+			return test(query, [2, 5]);
+		});
+
+		it('unordered', () => {
+			const query = Movie.query();
+
 			let expected;
 
 			return query.clone()
 				.then(res => {
 					expected = res;
-					return query.clone().limit(9).cursorPage();
+					return query.clone().limit(10).cursorPage();
 				})
 				.then(({results, pageInfo}) => {
-					expect(results).to.deep.equal(expected.slice(0, 9));
-					return query.clone().limit(9).cursorPage(pageInfo.next);
-				})
-				.then(({results, pageInfo}) => {
-					expect(results).to.deep.equal(expected.slice(9, 18));
-					return query.clone().limit(9).cursorPage(pageInfo.next);
+					expect(results).to.deep.equal(expected.slice(0, 10));
+					return query.clone().limit(10).cursorPage(pageInfo.next);
 				})
 				.then(({results}) => {
-					expect(results).to.deep.equal(expected.slice(18, 20));
+					expect(results).to.deep.equal(expected.slice(0, 10));
 				});
 		});
 	});
