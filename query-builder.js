@@ -123,10 +123,13 @@ module.exports = function (options, Base) {
 				return;
 			}
 
+			if (ops.length === 0) {
+				throw new Error('Invalid cursor');
+			}
+
 			const {col, val, dir} = getCoalescedOp(this, builder.context()[DATA_ORDERBYCOALESCE], ops[0], item);
 			const comp = dir === 'asc' ? '>' : '<';
 
-			// If we get here, then `ops.length` is at least 1, since otherwise `item` is null
 			if (ops.length === 1) {
 				return builder.where(col, comp, val);
 			}

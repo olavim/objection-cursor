@@ -2,6 +2,7 @@ const expect = require('chai').expect;
 const {Model, raw} = require('objection');
 const {mapKeys, snakeCase, camelCase} = require('lodash');
 const cursorPagination = require('..');
+const {serializeValue} = require('../lib/type-serializer');
 
 module.exports = knex => {
 	describe('cursor tests', () => {
@@ -354,6 +355,22 @@ module.exports = knex => {
 				.then(({results}) => {
 					expect(results).to.deep.equal(expected.slice(0, 10));
 				});
+		});
+
+		it('invalid cursor', () => {
+			const query = Movie.query();
+
+			return query.clone().cursorPage('what is going on')
+				.then(() => expect(true).to.be.false)
+				.catch(err => expect(err.message).to.equal('Invalid cursor'));
+		});
+
+		it('invalid serialized cursor', () => {
+			const query = Movie.query();
+
+			return query.clone().cursorPage(serializeValue('what is going on'))
+				.then(() => expect(true).to.be.false)
+				.catch(err => expect(err.message).to.equal('Invalid cursor'));
 		});
 	});
 }
