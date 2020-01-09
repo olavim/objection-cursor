@@ -1,9 +1,10 @@
-const expect = require('chai').expect;
-const {Model, ref, raw} = require('objection');
-const {mapKeys, snakeCase, camelCase} = require('lodash');
-const cursorPagination = require('..');
+import {expect} from 'chai';
+import {Model, ref, raw, Pojo} from 'objection';
+import Knex from 'knex';
+import {mapKeys, snakeCase, camelCase} from 'lodash';
+import cursorPagination from '../src';
 
-module.exports = knex => {
+export default (knex: Knex) => {
 	describe('reference tests', () => {
 		const cursor = cursorPagination({
 			pageInfo: {
@@ -49,7 +50,7 @@ module.exports = knex => {
 				.orderBy('movies.id', 'asc')
 				.joinEager('ref');
 
-			let expected;
+			let expected: (typeof query)['ResultType'];
 
 			return query.clone()
 				.then(res => {
@@ -75,12 +76,12 @@ module.exports = knex => {
 
 		it('order by ref with column mappers', () => {
 			class CaseMovie extends Movie {
-				$formatDatabaseJson(json) {
+				$formatDatabaseJson(json: Pojo) {
 					const formatted = super.$formatDatabaseJson(json);
 					return mapKeys(formatted, (val, key) => snakeCase(key));
 				}
 
-				$parseDatabaseJson(json) {
+				$parseDatabaseJson(json: Pojo) {
 					const parsed = super.$parseDatabaseJson(json);
 					return mapKeys(parsed, (val, key) => camelCase(key));
 				}
@@ -92,7 +93,7 @@ module.exports = knex => {
 				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
 				.orderBy('movies.id', 'asc');
 
-			let expected;
+			let expected: (typeof query)['ResultType'];
 
 			return query.clone()
 				.then(res => {

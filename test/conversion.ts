@@ -1,9 +1,7 @@
-'use strict';
-
-const expect = require('chai').expect;
-const {mapKeys, snakeCase, camelCase} = require('lodash');
-const {Model, ref} = require('objection');
-const {columnToProperty} = require('../lib/convert');
+import {expect} from 'chai';
+import {mapKeys, snakeCase, camelCase} from 'lodash';
+import {Model, ref, Pojo} from 'objection';
+import {columnToProperty} from '../src/lib/convert';
 
 describe('conversion tests', () => {
 	describe('column to property', () => {
@@ -14,14 +12,14 @@ describe('conversion tests', () => {
 		}
 
 		class CaseMovie extends Movie {
-			$formatDatabaseJson(json) {
+			public $formatDatabaseJson(json: Pojo) {
 				const formatted = super.$formatDatabaseJson(json);
-				return mapKeys(formatted, (val, key) => snakeCase(key));
+				return mapKeys(formatted, (_val, key) => snakeCase(key));
 			}
 
-			$parseDatabaseJson(json) {
+			public $parseDatabaseJson(json: Pojo) {
 				const parsed = super.$parseDatabaseJson(json);
-				return mapKeys(parsed, (val, key) => camelCase(key));
+				return mapKeys(parsed, (_val, key) => camelCase(key));
 			}
 		}
 

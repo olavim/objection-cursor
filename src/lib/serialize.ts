@@ -1,8 +1,8 @@
-const base64url = require('base64url');
-const {set, get} = require('lodash');
-const {serializeValue, deserializeString} = require('./type-serializer');
+import base64url from 'base64url';
+import {set, get} from 'lodash';
+import {serializeValue, deserializeString} from './type-serializer';
 
-function serializeCursor(ops, item) {
+export function serializeCursor(ops: Array<{prop: string}>, item: any) {
 	if (!item) {
 		return '';
 	}
@@ -15,7 +15,7 @@ function serializeCursor(ops, item) {
 		.join('.');
 }
 
-function deserializeCursor(ops, cursor = '') {
+export function deserializeCursor(ops: Array<{prop: string}>, cursor: string = '') {
 	if (!cursor) {
 		return null;
 	}
@@ -29,5 +29,3 @@ function deserializeCursor(ops, cursor = '') {
 		return acc;
 	}, {});
 }
-
-module.exports = {serializeCursor, deserializeCursor};

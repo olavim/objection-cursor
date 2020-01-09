@@ -1,8 +1,9 @@
-const expect = require('chai').expect;
-const Model = require('objection').Model;
-const cursorPagination = require('..');
+import {expect} from 'chai';
+import {Model} from 'objection';
+import Knex from 'knex';
+import cursorPagination from '../src';
 
-module.exports = knex => {
+export default (knex: Knex) => {
 	describe('options tests', () => {
 		it('has total', () => {
 			class Movie extends cursorPagination({pageInfo: {total: true}})(Model) {

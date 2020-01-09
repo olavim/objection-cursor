@@ -1,0 +1,25 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended",
+    "tslint-no-unused-expression-chai"
+  ],
+  "jsRules": {},
+  "rules": {
+    "indent": [true, "tabs"],
+    "quotemark": [true, "single"],
+    "arrow-parens": [true, "ban-single-arg-parens"],
+    "whitespace": false,
+    "ordered-imports": false,
+    "interface-name": [true, "never-prefix"],
+    "trailing-comma": [true, {"multiline": "never", "singleline": "never"}],
+    "semicolon": [true, "always", "ignore-bound-class-methods"],
+    "object-literal-sort-keys": false,
+    "object-literal-key-quotes": [true, "as-needed"],
+    "max-line-length": false,
+    "max-classes-per-file": false,
+    "only-arrow-functions": false,
+    "variable-name": [true, "check-format", "ban-keywords", "allow-pascal-case", "allow-leading-underscore"]
+  },
+  "rulesDirectory": []
+}

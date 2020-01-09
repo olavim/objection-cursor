@@ -1,13 +1,15 @@
 class TypeSerializer {
-	constructor(typeName) {
+	public typeName: string;
+
+	constructor(typeName: string) {
 		this.typeName = typeName;
 	}
 
-	getPrefix() {
+	public getPrefix() {
 		return `(${this.typeName})`;
 	}
 
-	test() {
+	public test(...args: any[]) {
 		return false;
 	}
 }
@@ -17,15 +19,15 @@ class DateSerializer extends TypeSerializer {
 		super('date');
 	}
 
-	test(value) {
+	public test(value: any) {
 		return value instanceof Date;
 	}
 
-	serialize(value) {
+	public serialize(value: Date) {
 		return value.toISOString();
 	}
 
-	deserialize(value) {
+	public deserialize(value: string) {
 		return new Date(value);
 	}
 }
@@ -35,16 +37,16 @@ class JSONSerializer extends TypeSerializer {
 		super('json');
 	}
 
-	test() {
+	public test() {
 		// Any type can be stringified
 		return true;
 	}
 
-	serialize(value) {
+	public serialize(value: any) {
 		return JSON.stringify(value);
 	}
 
-	deserialize(value) {
+	public deserialize(value: string) {
 		return JSON.parse(value);
 	}
 }
@@ -54,12 +56,12 @@ const serializers = [
 	new JSONSerializer()
 ];
 
-function serializeValue(value) {
+export function serializeValue(value: any) {
 	const serializer = serializers.find(s => s.test(value));
-	return `${serializer.getPrefix()}${serializer.serialize(value)}`;
+	return `${serializer!.getPrefix()}${serializer!.serialize(value)}`;
 }
 
-function deserializeString(str) {
+export function deserializeString(str: string) {
 	const matches = str.match(/\((.*?)\)(.*)/);
 
 	if (!matches) {
@@ -69,7 +71,5 @@ function deserializeString(str) {
 	const typeName = matches[1];
 	const serializedValue = matches[2];
 	const serializer = serializers.find(s => s.typeName === typeName);
-	return serializer.deserialize(serializedValue);
+	return serializer!.deserialize(serializedValue);
 }
-
-module.exports = {serializeValue, deserializeString};

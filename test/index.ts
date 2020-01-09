@@ -1,12 +1,10 @@
-'use strict';
+import Knex from 'knex';
+import moment from 'moment';
+import cursorTests from './cursor';
+import optionsTests from './options';
+import referenceTests from './ref';
 
-const Knex = require('knex');
-const moment = require('moment');
-const cursorTests = require('./cursor');
-const optionsTests = require('./options');
-const referenceTests = require('./ref');
-
-function padStart(str, targetLength, padString) {
+function padStart(str: string, targetLength: number, padString: string) {
 	let padded = str;
 	while (padded.length < targetLength) {
 		padded = padString + padded;
@@ -14,7 +12,7 @@ function padStart(str, targetLength, padString) {
 	return padded;
 }
 
-const generateMovies = num => {
+function generateMovies(num: number) {
 	const d = new Date(2000, 1, 1, 0, 0, 0, 0);
 	const arr = [...new Array(num)].map((_val, key) => {
 		return {
@@ -33,7 +31,7 @@ const generateMovies = num => {
 	arr[num - 2].createdAt = arr[num - 3].createdAt;
 
 	return arr;
-};
+}
 
 describe('database tests', () => {
 	const dbConnections = [{

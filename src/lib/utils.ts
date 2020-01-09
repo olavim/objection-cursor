@@ -1,19 +1,28 @@
-const {get} = require('lodash');
+import {get} from 'lodash';
+import {ColumnRef, QueryBuilder} from 'objection';
+import {WhereStmtOp} from '../mixin';
 
-function stringifyObjectionBuilder(builder, val) {
+export function stringifyObjectionBuilder<Q extends QueryBuilder<any, any>>(builder: Q, val: any) {
 	if (val && typeof val.toKnexRaw === 'function') {
 		// Stringify raw- and reference builders, since `Model.raw` doesn't do it
 		try {
 			return val.toKnexRaw(builder); // Objection v1
 		} catch (_err) {
-			return val.toKnexRaw(builder.knex()); // Objection v0
+			return val.toKnexRaw((builder as any).knex()); // Objection v0
 		}
 	}
 
 	return val;
 }
 
-function getCoalescedOp(builder, coalesceObj = {}, {col, prop, dir}, item) {
+export function getCoalescedOp<Q extends QueryBuilder<any, any>>(
+	builder: Q,
+	coalesceObj: {[k: string]: ColumnRef[]} = {},
+	op: WhereStmtOp,
+	item: any
+) {
+	const {prop, dir} = op;
+	let {col} = op;
 	let val = get(item, prop, null);
 
 	if (coalesceObj[prop]) {
@@ -32,7 +41,7 @@ function getCoalescedOp(builder, coalesceObj = {}, {col, prop, dir}, item) {
 /* Runs only if `flag` is falsy in `builder`'s context. Sets `flag` in `builder`'s context to
  * true, then to false after `fn` returns.
  */
-function lockStatement(builder, flag, fn) {
+export function lockStatement<Q extends QueryBuilder<any, any>>(builder: Q, flag: string, fn: (...args: any[]) => any) {
 	if (builder.context()[flag]) {
 		return;
 	}
@@ -41,5 +50,3 @@ function lockStatement(builder, flag, fn) {
 	fn();
 	builder.mergeContext({[flag]: false});
 }
-
-module.exports = {stringifyObjectionBuilder, getCoalescedOp, lockStatement};

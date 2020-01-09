@@ -1,10 +1,11 @@
-const expect = require('chai').expect;
-const {Model, raw} = require('objection');
-const {mapKeys, snakeCase, camelCase} = require('lodash');
-const cursorPagination = require('..');
-const {serializeValue} = require('../lib/type-serializer');
+import {expect} from 'chai';
+import {Model, raw, Pojo, JSONSchemaType, JSONSchema} from 'objection';
+import {mapKeys, snakeCase, camelCase} from 'lodash';
+import Knex from 'knex';
+import cursorPagination from '../src';
+import {serializeValue} from '../src/lib/type-serializer';
 
-module.exports = knex => {
+export default (knex: Knex) => {
 	describe('cursor tests', () => {
 		const cursor = cursorPagination({
 			pageInfo: {
@@ -19,18 +20,17 @@ module.exports = knex => {
 		});
 
 		class Movie extends cursor(Model) {
-			static get tableName() {
-				return 'movies';
-			}
+			public static tableName = 'movies';
 		}
 
 		Movie.knex(knex);
 
-		function test(query, pagesRange) {
+		function test<QB extends Movie['QueryBuilderType']>(query: QB, pagesRange: [number, number]) {
+
 			const tasks = [];
 			for (let pages = pagesRange[0]; pages < pagesRange[1]; pages++) {
-				let expected;
-				let perPage;
+				let expected: QB['ResultType'];
+				let perPage: number;
 				let page = 0;
 
 				let q = query.clone().then(res => {
@@ -54,15 +54,13 @@ module.exports = knex => {
 					});
 				}
 
-				q = q
-					.then(({pageInfo}) => {
-						return query.clone().limit(5).cursorPage(pageInfo.next);
-					})
+				const promise = q
+					.then(({pageInfo}) => query.clone().limit(5).cursorPage(pageInfo.next))
 					.then(({results}) => {
 						expect(results).to.deep.equal([]);
 					});
 
-				tasks.push(q);
+				tasks.push(promise);
 			}
 			return Promise.all(tasks);
 		}
@@ -125,7 +123,10 @@ module.exports = knex => {
 				.orderByCoalesce('title', 'desc')
 				.orderBy('id', 'asc');
 
-			let expected;
+			type K = typeof Movie;
+			type X = Movie['QueryBuilderType'];
+
+			let expected: (typeof query)['ResultType'];
 
 			return query.clone()
 				.then(res => {
@@ -239,36 +240,36 @@ module.exports = knex => {
 				.orderBy('id', 'asc')
 				.where('id', '0');
 
-				return query.clone()
-					.then(res => {
-						expect(res).to.deep.equal([]);
-						return query.clone().cursorPage();
-					})
-					.then(res => {
-						expect(res.results).to.deep.equal([]);
-						return query.clone().cursorPage(res.pageInfo.next);
-					})
-					.then(res => {
-						expect(res.results).to.deep.equal([]);
-						return query.clone().previousCursorPage(res.pageInfo.previous);
-					})
-					.then(res => {
-						expect(res.results).to.deep.equal([]);
-						return query.clone().previousCursorPage(res.pageInfo.previous);
-					})
-					.then(res => {
-						expect(res.results).to.deep.equal([]);
-					});
+			return query.clone()
+				.then(res => {
+					expect(res).to.deep.equal([]);
+					return query.clone().cursorPage();
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal([]);
+					return query.clone().cursorPage(res.pageInfo.next);
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal([]);
+					return query.clone().previousCursorPage(res.pageInfo.previous);
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal([]);
+					return query.clone().previousCursorPage(res.pageInfo.previous);
+				})
+				.then(res => {
+					expect(res.results).to.deep.equal([]);
+				});
 		});
 
 		it('handles column name mappers', () => {
 			class CaseMovie extends Movie {
-				$formatDatabaseJson(json) {
+				public $formatDatabaseJson(json: Pojo) {
 					const formatted = super.$formatDatabaseJson(json);
 					return mapKeys(formatted, (val, key) => snakeCase(key));
 				}
 
-				$parseDatabaseJson(json) {
+				public $parseDatabaseJson(json: Pojo) {
 					const parsed = super.$parseDatabaseJson(json);
 					return mapKeys(parsed, (val, key) => camelCase(key));
 				}
@@ -286,13 +287,13 @@ module.exports = knex => {
 			const expectedQuery = Movie.query()
 				.orderByCoalesce('title', 'desc')
 				.orderBy('id', 'asc');
-			const cursorPage = (...args) => Movie.query()
+			const cursorPage = (...args: any[]) => Movie.query()
 				.cursorPage(...args)
 				.orderByCoalesce('title', 'desc')
 				.orderBy('id', 'asc')
 				.limit(5);
 
-			let expected;
+			let expected: (typeof expectedQuery)['ResultType'];
 
 			return expectedQuery
 				.then(res => {
@@ -341,7 +342,7 @@ module.exports = knex => {
 		it('unordered', () => {
 			const query = Movie.query();
 
-			let expected;
+			let expected: (typeof query)['ResultType'];
 
 			return query.clone()
 				.then(res => {
