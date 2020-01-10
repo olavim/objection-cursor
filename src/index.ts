@@ -1,6 +1,7 @@
 import {merge} from 'lodash';
 import {Model} from 'objection';
-import mixin, {Options, InputOptions, AnyConstructor, CursorModel} from './mixin';
+import mixin, {AnyConstructor, CursorMixin} from './mixin';
+import {InputOptions, Options} from './query-builder';
 
 function getMixin(inOptions: InputOptions) {
 	const options = merge({
@@ -15,13 +16,13 @@ function getMixin(inOptions: InputOptions) {
 		}
 	}, inOptions) as Options;
 
-	return mixin(options) as <T extends AnyConstructor<Model>>(ModelClass: T) => T & CursorModel;
+	return mixin(options);
 }
 
-function cursor(options: InputOptions): <T extends AnyConstructor<Model>>(ModelClass: T) => T & CursorModel;
-function cursor<T extends AnyConstructor<Model>>(ModelClass: T): T & CursorModel;
+function cursor(options: InputOptions): <T extends AnyConstructor<Model>>(ModelClass: T) => CursorMixin<T>;
+function cursor<T extends AnyConstructor<Model>>(ModelClass: T): CursorMixin<T>;
 
-function cursor(options: InputOptions | typeof Model = {}) {
+function cursor<T extends AnyConstructor<Model> = any>(options: InputOptions | T = {}) {
 	if (typeof options === 'function') {
 		return getMixin({})(options);
 	}

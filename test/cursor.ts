@@ -19,7 +19,11 @@ export default (knex: Knex) => {
 			}
 		});
 
-		class Movie extends cursor(Model) {
+		class Asd extends Model {
+			public static tableName = 'movies';
+		}
+
+		class Movie extends cursor(Asd) {
 			public static tableName = 'movies';
 		}
 

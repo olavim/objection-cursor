@@ -1,6 +1,6 @@
 import {get} from 'lodash';
 import {ColumnRef, QueryBuilder} from 'objection';
-import {WhereStmtOp} from '../mixin';
+import {WhereStmtOp} from '../query-builder';
 
 export function stringifyObjectionBuilder<Q extends QueryBuilder<any, any>>(builder: Q, val: any) {
 	if (val && typeof val.toKnexRaw === 'function') {
