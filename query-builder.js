@@ -9,10 +9,12 @@ const FLAG_ORIGINAL_BUILDER = '__cursor_flag_original_builder';
 const FLAG_CURSORPAGE = '__cursor_flag_cursorPage';
 const FLAG_ORDERBY = '__cursor_flag_orderBy';
 const FLAG_ORDERBYCOALESCE = '__cursor_flag_orderByCoalesce';
+const FLAG_RESULTSIZE_BUILDER = '__cursor_data_resultSize_builder';
 
 const DATA_ORDERBY = '__cursor_data_orderBy';
 const DATA_ORDERBYCOALESCE = '__cursor_data_orderByCoalesce';
 const DATA_ORIGQUERY = '__cursor_data_originalQueryBuilder';
+const DATA_RESULTQUERY = '__cursor_data_resultSizeQueryBuilder';
 
 module.exports = function (options, Base) {
 	return class extends Base.QueryBuilder {
@@ -187,7 +189,7 @@ module.exports = function (options, Base) {
 		}
 
 		_buildCursor(builder, cursor, before) {
-			// Save current builder (before where statements) for pageInfo (total, remaining, etc.)
+			// Save current builder (before where statements) for pageInfo (total)
 			builder.mergeContext({
 				[DATA_ORIGQUERY]: builder.clone().mergeContext({[FLAG_ORIGINAL_BUILDER]: true})
 			});
@@ -198,7 +200,7 @@ module.exports = function (options, Base) {
 			this._buildOrderBy(builder);
 			this._addWhereStmts(builder, orderByOps, item);
 
-			if (!builder.has(/limit/)) {
+			if (!builder.has(/limit/) && !builder.context()[FLAG_RESULTSIZE_BUILDER]) {
 				builder.limit(options.limit);
 			}
 
@@ -208,6 +210,11 @@ module.exports = function (options, Base) {
 					op.args[1] = op.args[1] === 'asc' ? 'desc' : 'asc';
 				});
 			}
+
+			// Save copy of current builder for pageInfo (hasNext, remaining, etc.)
+			builder.mergeContext({
+				[DATA_RESULTQUERY]: builder.clone().mergeContext({[FLAG_RESULTSIZE_BUILDER]: true})
+			});
 		}
 
 		_getAdditionalPageInfo(models, builder, before) {
@@ -232,8 +239,7 @@ module.exports = function (options, Base) {
 				})
 				.then(() => {
 					if (isEnabled(['hasMore', 'hasNext', 'hasPrevious', 'remaining', 'remainingBefore', 'remainingAfter'])) {
-						return this.clone().resultSize().then(rs => {
-							rs = parseInt(rs, 10);
+						return builder.context()[DATA_RESULTQUERY].resultSize().then(rs => {
 							const remaining = rs - models.length;
 							setIfEnabled('remaining', remaining);
 							setIfEnabled('remainingBefore', before ? remaining : total - rs);

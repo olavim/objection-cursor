@@ -7,6 +7,7 @@ const {serializeValue} = require('../lib/type-serializer');
 module.exports = knex => {
 	describe('cursor tests', () => {
 		const cursor = cursorPagination({
+			limit: 10,
 			pageInfo: {
 				total: true,
 				hasMore: true,
