@@ -63,7 +63,7 @@ module.exports = function (options, Base) {
 			return this
 				.mergeContext({[FLAG_CURSORPAGE]: true})
 				.onBuild(builder => lockStatement(builder, FLAG_ONBUILD, () => {
-					return this._buildCursor(builder, cursor, before);
+					this._buildCursor(builder, cursor, before);
 				}))
 				.runAfter((models, builder) => {
 					// We want to always return results in the same order; as if turning pages in a book
@@ -189,9 +189,16 @@ module.exports = function (options, Base) {
 		}
 
 		_buildCursor(builder, cursor, before) {
+			if (builder.context()[FLAG_ORIGINAL_BUILDER]) {
+				return;
+			}
+
 			// Save current builder (before where statements) for pageInfo (total)
 			builder.mergeContext({
-				[DATA_ORIGQUERY]: builder.clone().mergeContext({[FLAG_ORIGINAL_BUILDER]: true})
+				[DATA_ORIGQUERY]: builder.clone().mergeContext({
+					[FLAG_ORIGINAL_BUILDER]: true,
+					[FLAG_ONBUILD]: false
+				})
 			});
 
 			const orderByOps = this._getOrderByOperations(before);
@@ -213,7 +220,10 @@ module.exports = function (options, Base) {
 
 			// Save copy of current builder for pageInfo (hasNext, remaining, etc.)
 			builder.mergeContext({
-				[DATA_RESULTQUERY]: builder.clone().mergeContext({[FLAG_RESULTSIZE_BUILDER]: true})
+				[DATA_RESULTQUERY]: builder.clone().mergeContext({
+					[FLAG_RESULTSIZE_BUILDER]: true,
+					[FLAG_ONBUILD]: false
+				})
 			});
 		}
 
