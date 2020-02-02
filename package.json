@@ -7,7 +7,7 @@
     "test": "mocha",
     "lint": "eslint --fix \"index.js\" \"serialize.js\" \"test/**/*.js\"",
     "release": "standard-version",
-    "prerelease": "standard-version --prerelease alpha"
+    "release:alpha": "standard-version --prerelease alpha"
   },
   "engines": {
     "node": ">=6.0.0"
