@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.0.1-alpha.0"></a>
+## [1.0.1-alpha.0](https://github.com/olavim/objection-cursor/compare/v1.0.0-alpha.5...v1.0.1-alpha.0) (2020-02-02)
+
+
+### Bug Fixes
+
+* resultSize with conflicting limits ([ce1ad67](https://github.com/olavim/objection-cursor/commit/ce1ad67))
+
+
+
 <a name="1.0.0"></a>
 # [1.0.0](https://github.com/olavim/objection-cursor/compare/v1.0.0-alpha.5...v1.0.0) (2019-08-23)
 
