@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
+    "test:tav": "tav",
     "lint": "eslint --fix \"index.js\" \"serialize.js\" \"test/**/*.js\"",
     "release": "standard-version",
     "release:alpha": "standard-version --prerelease alpha"
@@ -27,13 +28,14 @@
     "mocha": "^5.2.0",
     "objection": "^2.0.0",
     "pg": "^7.4.3",
-    "sqlite3": "^4.0.1"
+    "sqlite3": "^4.0.1",
+    "mysql": "^2.17.1",
+    "test-all-versions": "^4.1.1"
   },
   "dependencies": {
     "base64url": "^3.0.0",
     "lodash": "^4.17.10",
-    "moment": "^2.24.0",
-    "mysql": "^2.17.1"
+    "moment": "^2.24.0"
   },
   "peerDependencies": {
     "objection": ">=0.8"

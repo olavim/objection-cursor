@@ -1,0 +1,5 @@
+objection:
+  versions: 0.9.4 || 1.6.11 || ^2.1.0
+  commands: mocha
+  peerDependencies:
+    - lodash

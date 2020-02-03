@@ -1,5 +1,5 @@
 const {merge} = require('lodash');
-const getQueryBuilder = require('./query-builder');
+const getQueryBuilder = require('./lib/query-builder');
 
 const mixin = options => {
 	options = merge({

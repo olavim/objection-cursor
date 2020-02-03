@@ -12,7 +12,7 @@ const SERIALIZE_ITEMS = [
 describe('serialization tests', () => {
 	it('serializes into url-safe strings', () => {
 		for (const item of SERIALIZE_ITEMS) {
-			const ops = Object.keys(item).map(key => ({prop: key}));
+			const ops = Object.keys(item).map(key => ({property: key}));
 			const cursor = serializeCursor(ops, item);
 			expect(/^[a-zA-Z0-9~._-]+$/.test(cursor)).to.be.true;
 		}
@@ -20,7 +20,7 @@ describe('serialization tests', () => {
 
 	it('deserializes cursor back to item', () => {
 		for (const item of SERIALIZE_ITEMS) {
-			const ops = Object.keys(item).map(key => ({prop: key}));
+			const ops = Object.keys(item).map(key => ({property: key}));
 			const cursor = serializeCursor(ops, item);
 			const deserialized = deserializeCursor(ops, cursor);
 			expect(deserialized).to.deep.equal(item);
