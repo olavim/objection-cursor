@@ -1,7 +1,7 @@
 const {merge} = require('lodash');
-const getQueryBuilder = require('./lib/query-builder');
+const getCursorQB = require('./lib/query-builder/CursorQueryBuilder');
 
-const mixin = options => {
+const cursorMixin = options => {
 	options = merge({
 		limit: 50,
 		pageInfo: {
@@ -15,7 +15,7 @@ const mixin = options => {
 	}, options);
 
 	return Base => {
-		const CursorQueryBuilder = getQueryBuilder(options, Base);
+		const CursorQueryBuilder = getCursorQB(options, Base);
 
 		return class extends Base {
 			static get QueryBuilder() {
@@ -27,8 +27,8 @@ const mixin = options => {
 
 module.exports = (options = {}) => {
 	if (typeof options === 'function') {
-		return mixin({})(options);
+		return cursorMixin({})(options);
 	}
 
-	return mixin(options);
+	return cursorMixin(options);
 };

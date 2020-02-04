@@ -59,73 +59,75 @@ describe('database tests', () => {
 		}
 	}];
 
-	const tasks = dbConnections.map(config => {
-		const knex = Knex(config);
+	const tasks = dbConnections
+		.filter(config => !process.env.CLIENT || process.env.CLIENT === config.client)
+		.map(config => {
+			const knex = Knex(config);
 
-		describe(config.client, () => {
-			before(() => {
-				return knex.schema.dropTableIfExists('movies');
-			});
+			describe(config.client, () => {
+				before(() => {
+					return knex.schema.dropTableIfExists('movies');
+				});
 
-			before(() => {
-				return knex.schema.dropTableIfExists('movie_refs');
-			});
+				before(() => {
+					return knex.schema.dropTableIfExists('movie_refs');
+				});
 
-			before(() => {
-				return knex.schema.createTable('movies', table => {
-					table.increments();
-					table.string('title');
-					table.string('author');
-					table.string('alt_title');
+				before(() => {
+					return knex.schema.createTable('movies', table => {
+						table.increments();
+						table.string('title');
+						table.string('author');
+						table.string('alt_title');
+
+						if (config.client === 'mysql') {
+							table.specificType('date', 'DATETIME(3)');
+							table.specificType('createdAt', 'DATETIME(3)');
+						} else {
+							table.dateTime('date');
+							table.dateTime('createdAt');
+						}
+					});
+				});
+
+				before(() => {
+					return knex.schema.createTable('movie_refs', table => {
+						table.increments();
+						table.integer('movie_id');
+						table.json('data');
+					});
+				});
+
+				before(() => {
+					const movies = generateMovies(20);
 
 					if (config.client === 'mysql') {
-						table.specificType('date', 'DATETIME(3)');
-						table.specificType('createdAt', 'DATETIME(3)');
-					} else {
-						table.dateTime('date');
-						table.dateTime('createdAt');
+						for (const movie of movies) {
+							movie.date = movie.date && moment(movie.date).format('YYYY-MM-DD HH:mm:ss.SSS');
+							movie.createdAt = moment(movie.createdAt).format('YYYY-MM-DD HH:mm:ss.SSS');
+						}
 					}
+
+					return knex('movies').insert(movies);
 				});
-			});
 
-			before(() => {
-				return knex.schema.createTable('movie_refs', table => {
-					table.increments();
-					table.integer('movie_id');
-					table.json('data');
-				});
-			});
+				cursorTests(knex);
+				optionsTests(knex);
 
-			before(() => {
-				const movies = generateMovies(20);
+				if (config.client === 'pg') {
+					before(() => {
+						return knex('movie_refs').insert(generateMovies(20).map((movie, id) => ({
+							movie_id: id + 1,
+							data: {title: movie.title}
+						})));
+					});
 
-				if (config.client === 'mysql') {
-					for (const movie of movies) {
-						movie.date = movie.date && moment(movie.date).format('YYYY-MM-DD HH:mm:ss.SSS');
-						movie.createdAt = moment(movie.createdAt).format('YYYY-MM-DD HH:mm:ss.SSS');
-					}
+					referenceTests(knex);
 				}
-
-				return knex('movies').insert(movies);
 			});
 
-			cursorTests(knex);
-			optionsTests(knex);
-
-			if (config.client === 'pg') {
-				before(() => {
-					return knex('movie_refs').insert(generateMovies(20).map((movie, id) => ({
-						movie_id: id + 1,
-						data: {title: movie.title}
-					})));
-				});
-
-				referenceTests(knex);
-			}
+			return knex;
 		});
-
-		return knex;
-	});
 
 	after(() => {
 		return Promise.all(tasks.map(knex => knex.destroy()));
