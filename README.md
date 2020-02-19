@@ -77,7 +77,51 @@ const query = Movie.query()
   ...
 ```
 
+That doesn't mean raw queries aren't supported at all. You do need to use a special function for this though, called `orderByExplicit` (because `orderByRaw` was taken...)
+
+```js
+const {raw} = require('objection');
+
+const query = Movie.query()
+
+  // Coalesce null values into empty string
+  .orderByExplicit(raw('COALESCE(??, ?)', ['alt_title', '']))
+
+  // Same as above
+  .orderByExplicit(raw('COALESCE(??, ?)', ['alt_title', '']), 'asc')
+
+  // Works with reference builders and strings
+  .orderByExplicit(ref('details:completed').castText(), 'desc')
+
+   // Reference builders can be used as part of raw queries
+  .orderByExplicit(raw('COALESCE(??, ?, ?)', ['even_more_alt_title', ref('alt_title'), raw('?', '')]))
+
+   // Sometimes you need to go deeper...
+  .orderByExplicit(
+    raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['alt_title', '', 'alt_title'])
+    'asc',
+
+    /* Since this is a cursor plugin, we need to compare actual values that are encoded in the cursor.
+     * `orderByExplicit` needs to know how to compare a column to a value, which isn't easy to guess
+     * when you're throwing raw queries at it! By default, `orderByExplicit` uses the first binding you
+     * passed to the column's raw query, but if that column isn't the first or only column binding you
+     * passed, you need to help the function a bit.
+     */
+    value => raw('CASE WHEN ? = NULL THEN ? ELSE ? END', [value, '', value]),
+
+    /* If the column isn't the first binding in the raw query, you will need to specify how to access
+     * it in the resulting object(s). This is also true if you use some postprocessing on the returned
+     * data which changes the name of the property where the value is stored.
+     */
+    'alt_title'
+  )
+  .orderBy('id')
+  ...
+```
+
 Cursors ordered by nullable columns won't work out-of-the-box. For this reason the mixin also introduces an `orderByCoalesce` method, which you can use to treat nulls as some other value for the sake of comparisons. Same as `orderBy`, `orderByCoalesce` supports reference builders, but not raw queries.
+
+**Deprecated!** Use `orderByExplicit` instead.
 
 ```js
 const query = Movie.query()
@@ -179,13 +223,25 @@ Alias for `cursorPage`, with `before: true`.
 
 ### `orderByCoalesce(column, [direction, [values]])`
 
+> **Deprecated**: use `orderByExplicit` instead.
+
 Use this if you want to sort by a nullable column.
 
 - `column` - Column to sort by.
 - `direction` - Sort direction.
   - Default: `asc`
-- `values` - Values to coalesce to. If column has a null value, treat it as the first non-null value in `values`. Can be one or many of: *string*, *ReferenceBuilder* or *RawQuery*.
+- `values` - Values to coalesce to. If column has a null value, treat it as the first non-null value in `values`. Can be one or many of: *primitive*, *ReferenceBuilder* or *RawQuery*.
   - Default: `['']`
+
+### `orderByExplicit(column, [direction, [getValue, [property]]])`
+
+Use this if you want to sort by a nullable column.
+
+- `column` - Column to sort by. If this is _not_ a RawBuilder, `getValue` and `property` will be ignored.
+- `direction` - Sort direction.
+  - Default: `asc`
+- `getValue` callback - Callback is called with a value, and should return one of *primitive*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after.
+- `property` - Values will be encoded inside cursors based on ordering, and for this reason `orderByExplicit` needs to know how to access the correct value in the resulting objects. The function will try to guess by picking the first binding you pass to `column` raw query, but if for some reason this guess would be wrong, you need to specify here how to access the value.
 
 # Options
 
@@ -219,6 +275,6 @@ Values shown are defaults.
 
 **`remaining` vs `remainingBefore` and `remainingAfter`:**
 
-`remaining` only tells you the remaining results in *current* direction and is therefore less descriptive as `remainingBefore` and `remainingAfter` combined. However, in cases where it's enough to know if there are "more" results, using only the `remaining` information will use one less query than using any one of `remainingBefore`, `remainingAfter`. Similarly `hasMore` uses one less query than `hasPrevious`, and `hasNext`.
- 
+`remaining` only tells you the remaining results in the *current* direction and is therefore less descriptive as `remainingBefore` and `remainingAfter` combined. However, in cases where it's enough to know if there are "more" results, using only the `remaining` information will use one less query than using either of `remainingBefore` or `remainingAfter`. Similarly `hasMore` uses one less query than `hasPrevious`, and `hasNext`.
+
 However, if `total` is used, then using `remaining` no longer gives you the benefit of using one less query.
