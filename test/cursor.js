@@ -95,10 +95,29 @@ module.exports = knex => {
 			return test(query, [2, 5]);
 		});
 
+		it('two order by cols: asc,desc - orderByExplicit', () => {
+			const query = Movie
+				.query()
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', '']), 'asc')
+				.orderBy('id', 'desc');
+
+			return test(query, [2, 5]);
+		});
+
 		it('three order by cols: asc,desc,asc', () => {
 			const query = Movie
 				.query()
 				.orderByCoalesce('title', 'asc')
+				.orderBy('author', 'desc')
+				.orderBy('id', 'asc');
+
+			return test(query, [2, 5]);
+		});
+
+		it('three order by cols: asc,desc,asc - orderByExplicit', () => {
+			const query = Movie
+				.query()
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', '']), 'asc')
 				.orderBy('author', 'desc')
 				.orderBy('id', 'asc');
 
@@ -120,10 +139,139 @@ module.exports = knex => {
 			return test(query, [2, 5]);
 		});
 
+		it('four order by cols: asc,desc,desc,asc - orderByExplicit', () => {
+			const datetimeType = knex.client.config.client === 'mysql'
+				? 'datetime'
+				: 'timestamptz';
+
+			const query = Movie
+				.query()
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', '']), 'asc')
+				.orderBy('author', 'desc')
+				.orderByExplicit(raw('COALESCE(??, ?)', ['date', raw(`CAST(? as ${datetimeType})`, '1970-1-1')]), 'desc')
+				.orderBy('id', 'asc');
+
+			return test(query, [2, 5]);
+		});
+
 		it('go to end, then back to beginning', () => {
 			const query = Movie
 				.query()
 				.orderByCoalesce('title', 'desc')
+				.orderBy('id', 'asc');
+
+			let expected;
+
+			return query.clone()
+				.then(res => {
+					expected = res;
+					return query.clone().limit(5).cursorPage();
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(15);
+					expect(pageInfo.remainingAfter).to.equal(15);
+					expect(pageInfo.remainingBefore).to.equal(0);
+					expect(results).to.deep.equal(expected.slice(0, 5));
+					return query.clone().limit(5).cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(10);
+					expect(pageInfo.remainingAfter).to.equal(10);
+					expect(pageInfo.remainingBefore).to.equal(5);
+					expect(results).to.deep.equal(expected.slice(5, 10));
+					return query.clone().limit(10).cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
+					expect(pageInfo.hasNext).to.be.false;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(0);
+					expect(pageInfo.remainingBefore).to.equal(10);
+					expect(results).to.deep.equal(expected.slice(10, 20));
+					return query.clone().limit(10).cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
+					expect(pageInfo.hasNext).to.be.false;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(0);
+					expect(pageInfo.remainingBefore).to.equal(20);
+					expect(results).to.deep.equal([]);
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
+					expect(pageInfo.hasNext).to.be.false;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(15);
+					expect(pageInfo.remainingAfter).to.equal(0);
+					expect(pageInfo.remainingBefore).to.equal(15);
+					expect(results).to.deep.equal(expected.slice(15, 20));
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(10);
+					expect(pageInfo.remainingAfter).to.equal(5);
+					expect(pageInfo.remainingBefore).to.equal(10);
+					expect(results).to.deep.equal(expected.slice(10, 15));
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.true;
+					expect(pageInfo.remaining).to.equal(5);
+					expect(pageInfo.remainingAfter).to.equal(10);
+					expect(pageInfo.remainingBefore).to.equal(5);
+					expect(results).to.deep.equal(expected.slice(5, 10));
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(15);
+					expect(pageInfo.remainingBefore).to.equal(0);
+					expect(results).to.deep.equal(expected.slice(0, 5));
+					return query.clone().limit(5).previousCursorPage(pageInfo.previous);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.false;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(0);
+					expect(pageInfo.remainingAfter).to.equal(20);
+					expect(pageInfo.remainingBefore).to.equal(0);
+					expect(results).to.deep.equal([]);
+					return query.clone().limit(5).cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(pageInfo.hasMore).to.be.true;
+					expect(pageInfo.hasNext).to.be.true;
+					expect(pageInfo.hasPrevious).to.be.false;
+					expect(pageInfo.remaining).to.equal(15);
+					expect(pageInfo.remainingAfter).to.equal(15);
+					expect(pageInfo.remainingBefore).to.equal(0);
+					expect(results).to.deep.equal(expected.slice(0, 5));
+				});
+		});
+
+		it('go to end, then back to beginning - orderByExplicit', () => {
+			const query = Movie
+				.query()
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', '']), 'desc')
 				.orderBy('id', 'asc');
 
 			let expected;
@@ -313,6 +461,36 @@ module.exports = knex => {
 				});
 		});
 
+		it('cursorPage does not have to be last call - orderByExplicit', () => {
+			const expectedQuery = Movie.query()
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', '']), 'desc')
+				.orderBy('id', 'asc');
+			const cursorPage = (...args) => Movie.query()
+				.cursorPage(...args)
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', '']), 'desc')
+				.orderBy('id', 'asc')
+				.limit(5);
+
+			let expected;
+
+			return expectedQuery
+				.then(res => {
+					expected = res;
+					return cursorPage();
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(0, 5));
+					return cursorPage(pageInfo.next);
+				})
+				.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal(expected.slice(5, 10));
+					return cursorPage(pageInfo.previous, true);
+				})
+				.then(({results}) => {
+					expect(results).to.deep.equal(expected.slice(0, 5));
+				});
+		});
+
 		it('order by [table].[column]', () => {
 			const query = Movie
 				.query()
@@ -325,6 +503,28 @@ module.exports = knex => {
 			const query = Movie
 				.query()
 				.orderByCoalesce('title', 'desc', raw('?', ['ab']))
+				.orderBy('id', 'asc');
+
+			return test(query, [2, 5]);
+		});
+
+		it('order by explicit raw', () => {
+			const query = Movie
+				.query()
+				.orderByExplicit(raw('COALESCE(??, ?)', ['title', raw('?', ['ab'])]), 'desc')
+				.orderBy('id', 'asc');
+
+			return test(query, [2, 5]);
+		});
+
+		it('order by explicit raw - case expression', () => {
+			const query = Movie
+				.query()
+				.orderByExplicit(
+					raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['title', '', 'title']),
+					'desc',
+					val => raw('CASE WHEN ? = NULL THEN ? ELSE ? END', [val, '', val])
+				)
 				.orderBy('id', 'asc');
 
 			return test(query, [2, 5]);
