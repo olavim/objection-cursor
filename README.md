@@ -235,7 +235,7 @@ Use this if you want to sort by a nullable column.
 
 ### `orderByExplicit(column, [direction, [getValue, [property]]])`
 
-Use this if you want to sort by a nullable column.
+Use this if you want to sort by a RawBuilder.
 
 - `column` - Column to sort by. If this is _not_ a RawBuilder, `getValue` and `property` will be ignored.
 - `direction` - Sort direction.
