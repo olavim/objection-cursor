@@ -110,7 +110,7 @@ const query = Movie.query()
     value => raw('CASE WHEN ? = NULL THEN ? ELSE ? END', [value, '', value]),
 
     /* If the column isn't the first binding in the raw query, you will need to specify how to access
-     * it in the resulting object(s). This is also true if you use some postprocessing on the returned
+     * it in the resulting object(s). This is also true if you do postprocessing on the returned
      * data which changes the name of the property where the value is stored.
      */
     'alt_title'
