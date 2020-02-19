@@ -27,35 +27,37 @@ module.exports = knex => {
 
 		Movie.knex(knex);
 
-		function test(query, pagesRange) {
+		function test(query, pageSizeRange) {
 			const tasks = [];
-			for (let pages = pagesRange[0]; pages < pagesRange[1]; pages++) {
+			for (let pageSize = pageSizeRange[0]; pageSize <= pageSizeRange[1]; pageSize++) {
 				let expected;
-				let perPage;
-				let page = 0;
+				let perPage = pageSize;
 
-				let q = query.clone().then(res => {
+				let clone = query.clone().then(res => {
 					expected = res;
-					perPage = Math.ceil(expected.length / pages);
-					return query.clone().limit(perPage).cursorPage();
+					let q = query.clone().limit(perPage).cursorPage();
+
+					const offsets = [];
+					for (let offset = 0; offset < expected.length; offset += pageSize) {
+						offsets.push(offset);
+					}
+
+					return offsets.reduce(
+						(q, offset) => q.then(({results, pageInfo}) => {
+							expect(pageInfo.total).to.equal(expected.length);
+							const end = Math.min(offset + perPage, expected.length);
+							const pageDisplay = `rows: ${offset} - ${end} / ${expected.length}`;
+
+							expect(results, pageDisplay).to.deep.equal(expected.slice(offset, end));
+							expect(results.length).to.equal(end - offset);
+
+							return query.clone().limit(end - offset).cursorPage(pageInfo.next);
+						}),
+						q
+					);
 				});
 
-				for (let i = 0; i < pages; i++) {
-					q = q.then(({results, pageInfo}) => {
-						expect(pageInfo.total).to.equal(expected.length);
-						expect(results, `page: ${i+1}/${pages}`).to.deep.equal(expected.slice(perPage * page, perPage * (page + 1)));
-
-						if ((page + 1) * perPage > expected.length) {
-							perPage = expected.length - (page * perPage);
-						}
-
-						page++;
-						expect(results.length).to.equal(perPage);
-						return query.clone().limit(perPage).cursorPage(pageInfo.next);
-					});
-				}
-
-				q = q
+				clone = clone
 					.then(({pageInfo}) => {
 						return query.clone().limit(5).cursorPage(pageInfo.next);
 					})
@@ -63,7 +65,7 @@ module.exports = knex => {
 						expect(results).to.deep.equal([]);
 					});
 
-				tasks.push(q);
+				tasks.push(clone);
 			}
 			return Promise.all(tasks);
 		}
@@ -523,9 +525,41 @@ module.exports = knex => {
 				.orderByExplicit(
 					raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['title', '', 'title']),
 					'desc',
-					val => raw('CASE WHEN ? = NULL THEN ? ELSE ? END', [val, '', val])
+					val => raw('CASE WHEN ?::TEXT IS NULL THEN ?::TEXT ELSE ?::TEXT END', [val, '', val])
 				)
 				.orderBy('id', 'asc');
+
+			return test(query, [2, 10]);
+		});
+
+		it('order by explicit raw - modified internal data layout', () => {
+			class SuperMovie extends Movie {
+				$parseDatabaseJson(json) {
+					json = super.$parseDatabaseJson(json);
+					json.waitWhat = json.title;
+					delete json.title;
+					return json;
+				}
+			}
+
+			const query = SuperMovie
+				.query()
+				.orderByExplicit(raw(`COALESCE(??, '')`, 'title'), 'asc', 'waitWhat')
+				.orderBy('id');
+
+			return test(query, [2, 5]);
+		});
+
+		it('order by explicit raw - unknown column name', () => {
+			const query = Movie
+				.query()
+				.orderByExplicit(
+					raw('CONCAT(?::TEXT, ??)', ['tmp', 'title']),
+					'asc',
+					val => raw('CONCAT(?::TEXT, ?::TEXT)', ['tmp', val]),
+					'title'
+				)
+				.orderBy('id');
 
 			return test(query, [2, 5]);
 		});

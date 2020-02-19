@@ -230,18 +230,93 @@ Use this if you want to sort by a nullable column.
 - `column` - Column to sort by.
 - `direction` - Sort direction.
   - Default: `asc`
-- `values` - Values to coalesce to. If column has a null value, treat it as the first non-null value in `values`. Can be one or many of: *primitive*, *ReferenceBuilder* or *RawQuery*.
+- `values` - Values to coalesce to. If column has a null value, treat it as the first non-null value in `values`. Can be one or many of: *string*, *number*, *ReferenceBuilder* or *RawQuery*.
   - Default: `['']`
 
-### `orderByExplicit(column, [direction, [getValue, [property]]])`
+### `orderByExplicit(column, [direction, [getValue], [property]])`
 
 Use this if you want to sort by a RawBuilder.
 
 - `column` - Column to sort by. If this is _not_ a RawBuilder, `getValue` and `property` will be ignored.
 - `direction` - Sort direction.
   - Default: `asc`
-- `getValue` callback - Callback is called with a value, and should return one of *primitive*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after. See [this code comment](https://github.com/olavim/objection-cursor/blob/960a037f2d77d4578dab8c07320601b5a56a5b24/lib/query-builder/CursorQueryBuilder.js#L103) for more details.
-- `property` - Values will be encoded inside cursors based on ordering, and for this reason `orderByExplicit` needs to know how to access the correct value in the resulting objects. The function will try to guess by picking the first binding you pass to `column` raw query, but if for some reason this guess would be wrong, you need to specify here how to access the value.
+- `getValue` callback - Callback is called with a value, and should return one of *string*, *number*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after. See [this code comment](https://github.com/olavim/objection-cursor/blob/960a037f2d77d4578dab8c07320601b5a56a5b24/lib/query-builder/CursorQueryBuilder.js#L103) for more details.
+- `property` - Values will be encoded inside cursors based on ordering, and for this reason `orderByExplicit` needs to know how to access the related value in the resulting objects. By default the first argument passed to the `column` raw builder will be used, but if for some reason this guess would be wrong, you need to specify here how to access the value.
+
+#### When do I need to use `getValue`?
+
+Consider the following case, where we use a `CASE` statement instead of `COALESCE` to coalesce null values to an empty string
+
+```js
+Movie.query()
+  .orderByExplicit(
+    raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['title', '', 'title']),
+    'desc',
+    val => raw('CASE WHEN ?::TEXT IS NULL THEN ?::TEXT ELSE ?::TEXT END', [val, '', val])
+  )
+  ...
+```
+
+In this case we have two reasons two use `getValue`. One is that the column raw query uses the `title`
+column reference more than once. The other is that we need to modify the statement slightly, in this case
+by adding text typecasts to the values (otherwise you would run into [this](https://github.com/jackc/pgx/issues/281)).
+
+#### When do I need to use `property`?
+
+When the property name in your result is different than the first binding in your column raw query. For example, if your model's result structure is something like
+
+```js
+{
+  id: 1,
+  title: 'Hello there',
+  author: 'Somebody McSome'
+}
+```
+
+and your query looks like
+
+```js
+Movie.query()
+  .orderByExplicit(raw(`COALESCE(??, '')`, 'date'))
+  ...
+```
+
+you would need to use the `property` argument, because there is no `date` property in the result. This might happen if you use [`$parseDatabaseJson`](https://vincit.github.io/objection.js/api/model/instance-methods.html#parsedatabasejson) in your model, for example. Below is an example of using `property` argument together with `$parseDatabaseJson`.
+
+```js
+class Movie extends cursor(Model) {
+  $parseDatabaseJson(json) {
+    json = super.$parseDatabaseJson(json);
+
+    // Rename `title` to `newTitle`
+    json.newTitle = json.title;
+    delete json.title;
+
+    return json;
+  }
+}
+
+Movie.query()
+  .orderByExplicit(raw(`COALESCE(??, '')`, 'title'), 'asc', 'newTitle')
+  ....
+```
+
+#### When do I need to use both?
+
+Basically when the column binding in your column raw query is not the first binding, or if criteria for needing to use both is met for some other reason (see the previous two subchapters). Consider the following example
+
+```js
+Movie.query()
+  .orderByExplicit(
+    raw('CONCAT(?::TEXT, ??)', ['the ', 'title']),
+    'asc',
+    val => raw('CONCAT(?::TEXT, ?::TEXT)', ['the ', val]),
+    'title'
+  )
+  ...
+```
+
+Here we are concatenating `"the "` in front of the movie title. Here we need both `getValue` and `property`, because `title` is not the first binding in the column raw query (instead `"the "` is).
 
 # Options
 
