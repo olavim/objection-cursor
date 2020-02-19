@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.1.0"></a>
+# [1.1.0](https://github.com/olavim/objection-cursor/compare/v1.0.1...v1.1.0) (2020-02-19)
+
+
+### Bug Fixes
+
+* objection v2 support ([9b4b286](https://github.com/olavim/objection-cursor/commit/9b4b286))
+* **pkg:** fix alpha release script ([70d2cdc](https://github.com/olavim/objection-cursor/commit/70d2cdc))
+* **readme:** wrong orderByExplicit description ([5663ee6](https://github.com/olavim/objection-cursor/commit/5663ee6))
+
+
+### Features
+
+* orderByExplicit querybuilding method ([78e23ef](https://github.com/olavim/objection-cursor/commit/78e23ef))
+
+
+
 <a name="1.0.2"></a>
 ## [1.0.2](https://github.com/olavim/objection-cursor/compare/v1.0.2-alpha.0...v1.0.2) (2020-02-02)
 
