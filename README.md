@@ -240,7 +240,7 @@ Use this if you want to sort by a nullable column.
 - `column` - Column to sort by. If this is _not_ a RawBuilder, `getValue` and `property` will be ignored.
 - `direction` - Sort direction.
   - Default: `asc`
-- `getValue` callback - Callback is called with a value, and should return one of *primitive*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after.
+- `getValue` callback - Callback is called with a value, and should return one of *primitive*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after. See [this code comment](https://github.com/olavim/objection-cursor/blob/960a037f2d77d4578dab8c07320601b5a56a5b24/lib/query-builder/CursorQueryBuilder.js#L103) for more details.
 - `property` - Values will be encoded inside cursors based on ordering, and for this reason `orderByExplicit` needs to know how to access the correct value in the resulting objects. The function will try to guess by picking the first binding you pass to `column` raw query, but if for some reason this guess would be wrong, you need to specify here how to access the value.
 
 # Options
