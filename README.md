@@ -1,10 +1,10 @@
 # objection-cursor
 
-An [Objection.js](https://vincit.github.io/objection.js) plugin for cursor based pagination.
+An [Objection.js](https://vincit.github.io/objection.js) plugin for cursor-based pagination, AKA keyset pagination.
 
 Using offsets for pagination is a widely popular technique. Clients tell the number of results they want per page, and the page number they want to return results from. While easy to implement and use, offsets come with a drawback: when items are written to the database at a high frequency, offset based pagination becomes unreliable. For example, if we fetch a page with 10 rows, and then 10 rows are added, fetching the second page might contain the same rows as the first page.
 
-Cursor based pagination works by returning a pointer to a row in the database. Fetching the next/previous page will then return items after/before the given pointer. While reliable, this technique comes with a few drawbacks itself:
+Cursor-based pagination works by returning a pointer to a row in the database. Fetching the next/previous page will then return items after/before the given pointer. While reliable, this technique comes with a few drawbacks itself:
 
 - The cursor must be based on a unique column (or columns)
 - The concept of pages is lost, and thus you cannot jump to a specific one
