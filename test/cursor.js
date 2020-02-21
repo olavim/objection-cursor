@@ -519,18 +519,20 @@ module.exports = knex => {
 			return test(query, [2, 5]);
 		});
 
-		it('order by explicit raw - case expression', () => {
-			const query = Movie
-				.query()
-				.orderByExplicit(
-					raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['title', '', 'title']),
-					'desc',
-					val => raw('CASE WHEN ?::TEXT IS NULL THEN ?::TEXT ELSE ?::TEXT END', [val, '', val])
-				)
-				.orderBy('id', 'asc');
+		if (knex.client.config.client === 'pg') {
+			it('order by explicit raw - case expression', () => {
+				const query = Movie
+					.query()
+					.orderByExplicit(
+						raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['title', '', 'title']),
+						'desc',
+						val => val || ''
+					)
+					.orderBy('id', 'asc');
 
-			return test(query, [2, 10]);
-		});
+				return test(query, [2, 10]);
+			});
+		}
 
 		it('order by explicit raw - modified internal data layout', () => {
 			class SuperMovie extends Movie {
@@ -550,19 +552,21 @@ module.exports = knex => {
 			return test(query, [2, 5]);
 		});
 
-		it('order by explicit raw - unknown column name', () => {
-			const query = Movie
-				.query()
-				.orderByExplicit(
-					raw('CONCAT(?::TEXT, ??)', ['tmp', 'title']),
-					'asc',
-					val => raw('CONCAT(?::TEXT, ?::TEXT)', ['tmp', val]),
-					'title'
-				)
-				.orderBy('id');
+		if (knex.client.config.client === 'pg') {
+			it('order by explicit raw - unknown column name', () => {
+				const query = Movie
+					.query()
+					.orderByExplicit(
+						raw('CONCAT(?::TEXT, ??)', ['tmp', 'title']),
+						'asc',
+						val => 'tmp' + (val || ''),
+						'title'
+					)
+					.orderBy('id');
 
-			return test(query, [2, 5]);
-		});
+				return test(query, [2, 5]);
+			});
+		}
 
 		it('order by date column', () => {
 			const query = Movie

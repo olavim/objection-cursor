@@ -94,7 +94,7 @@ const query = Movie.query()
   .orderByExplicit(ref('details:completed').castText(), 'desc')
 
    // Reference builders can be used as part of raw queries
-  .orderByExplicit(raw('COALESCE(??, ?, ?)', ['even_more_alt_title', ref('alt_title'), raw('?', '')]))
+  .orderByExplicit(raw('COALESCE(??, ??, ?)', ['even_more_alt_title', ref('alt_title'), raw('?', '')]))
 
    // Sometimes you need to go deeper...
   .orderByExplicit(
@@ -103,17 +103,28 @@ const query = Movie.query()
 
     /* Since this is a cursor plugin, we need to compare actual values that are encoded in the cursor.
      * `orderByExplicit` needs to know how to compare a column to a value, which isn't easy to guess
-     * when you're throwing raw queries at it! By default, `orderByExplicit` uses the first binding you
-     * passed to the column's raw query, but if that column isn't the first or only column binding you
-     * passed, you need to help the function a bit.
+     * when you're throwing raw queries at it. By default the callback's return value is similar to the
+     * column raw query, except the first binding is changed to the value. If this guess would be incorrect,
+     * you need to specify the compared value manually.
      */
-    value => raw('CASE WHEN ? = NULL THEN ? ELSE ? END', [value, '', value]),
+    value => value || ''
+  )
 
-    /* If the column isn't the first binding in the raw query, you will need to specify how to access
-     * it in the resulting object(s). This is also true if you do postprocessing on the returned
-     * data which changes the name of the property where the value is stored.
+   // And deeper...
+  .orderByExplicit(
+    raw('CONCAT(??, ??)', ['id', 'title'])
+    'asc',
+
+    /* You can return a string, ReferenceBuilder, or a RawBuilder in the callback. This is useful
+     * when you need to use values from other columns.
      */
-    'alt_title'
+    value => raw('CONCAT(??, ?)', ['id', value]),
+
+    /* By default the first binding in the column raw query (after column name mappers) is used to
+     * access the relevant value from results. For example, in this case we say value = result['title']
+     * instead of value = result['id'].
+     */
+    'title'
   )
   .orderBy('id')
   ...
@@ -233,33 +244,33 @@ Use this if you want to sort by a nullable column.
 - `values` - Values to coalesce to. If column has a null value, treat it as the first non-null value in `values`. Can be one or many of: *string*, *number*, *ReferenceBuilder* or *RawQuery*.
   - Default: `['']`
 
-### `orderByExplicit(column, [direction, [getValue], [property]])`
+### `orderByExplicit(column, [direction, [compareValue], [property]])`
 
 Use this if you want to sort by a RawBuilder.
 
-- `column` - Column to sort by. If this is _not_ a RawBuilder, `getValue` and `property` will be ignored.
+- `column` - Column to sort by. If this is _not_ a RawBuilder, `compareValue` and `property` will be ignored.
 - `direction` - Sort direction.
   - Default: `asc`
-- `getValue` callback - Callback is called with a value, and should return one of *string*, *number*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after. See [this code comment](https://github.com/olavim/objection-cursor/blob/960a037f2d77d4578dab8c07320601b5a56a5b24/lib/query-builder/CursorQueryBuilder.js#L103) for more details.
+- `compareValue` callback - Callback is called with a value, and should return one of *string*, *number*, *ReferenceBuilder* or *RawQuery*. The returned value will be compared against `column` when determining which row to show results before/after. See [this code comment](https://github.com/olavim/objection-cursor/blob/960a037f2d77d4578dab8c07320601b5a56a5b24/lib/query-builder/CursorQueryBuilder.js#L103) for more details.
 - `property` - Values will be encoded inside cursors based on ordering, and for this reason `orderByExplicit` needs to know how to access the related value in the resulting objects. By default the first argument passed to the `column` raw builder will be used, but if for some reason this guess would be wrong, you need to specify here how to access the value.
 
-#### When do I need to use `getValue`?
+#### When do I need to use `compareValue`?
 
-Consider the following case, where we use a `CASE` statement instead of `COALESCE` to coalesce null values to an empty string
+Consider the following case, where we use a `CASE` statement instead of `COALESCE` to coalesce null values to empty strings
 
 ```js
 Movie.query()
   .orderByExplicit(
     raw('CASE WHEN ?? IS NULL THEN ? ELSE ?? END', ['title', '', 'title']),
     'desc',
-    val => raw('CASE WHEN ?::TEXT IS NULL THEN ?::TEXT ELSE ?::TEXT END', [val, '', val])
+    value => value || ''
   )
   ...
 ```
 
-In this case we have two reasons two use `getValue`. One is that the column raw query uses the `title`
-column reference more than once. The other is that we need to modify the statement slightly, in this case
-by adding text typecasts to the values (otherwise you would run into [this](https://github.com/jackc/pgx/issues/281)).
+In this case we have two reasons to use `compareValue`. One is that the column raw query uses the `title`
+column reference more than once. The other is that we would need to modify the statement slightly, at least
+in PostgreSQL's case (otherwise you would run into [this](https://github.com/jackc/pgx/issues/281)).
 
 #### When do I need to use `property`?
 
@@ -316,7 +327,7 @@ Movie.query()
   ...
 ```
 
-Here we are concatenating `"the "` in front of the movie title. Here we need both `getValue` and `property`, because `title` is not the first binding in the column raw query (instead `"the "` is).
+Here we are concatenating `"the "` in front of the movie title. Here we need both `compareValue` and `property`, because `title` is not the first binding in the column raw query (instead `"the "` is).
 
 # Options
 
