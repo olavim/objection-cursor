@@ -12,17 +12,15 @@ const SERIALIZE_ITEMS = [
 describe('serialization tests', () => {
 	it('serializes into url-safe strings', () => {
 		for (const item of SERIALIZE_ITEMS) {
-			const ops = Object.keys(item).map(key => ({property: key}));
-			const cursor = serializeCursor(ops, item);
+			const cursor = serializeCursor(Object.keys(item), item);
 			expect(/^[a-zA-Z0-9~._-]+$/.test(cursor)).to.be.true;
 		}
 	});
 
 	it('deserializes cursor back to item', () => {
 		for (const item of SERIALIZE_ITEMS) {
-			const ops = Object.keys(item).map(key => ({property: key}));
-			const cursor = serializeCursor(ops, item);
-			const deserialized = deserializeCursor(ops, cursor);
+			const cursor = serializeCursor(Object.keys(item), item);
+			const deserialized = deserializeCursor(Object.keys(item), cursor);
 			expect(deserialized).to.deep.equal(item);
 		}
 	});
