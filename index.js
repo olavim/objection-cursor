@@ -1,5 +1,5 @@
 const {merge} = require('lodash');
-const getCursorQB = require('./lib/query-builder/CursorQueryBuilder');
+const cursorSupport = require('./lib/query-builder/CursorQueryBuilder');
 
 const cursorMixin = options => {
 	options = merge({
@@ -15,7 +15,7 @@ const cursorMixin = options => {
 	}, options);
 
 	return Base => {
-		const CursorQueryBuilder = getCursorQB(options, Base);
+		const CursorQueryBuilder = cursorSupport(options, Base.QueryBuilder);
 
 		return class extends Base {
 			static get QueryBuilder() {
