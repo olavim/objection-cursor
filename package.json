@@ -38,7 +38,7 @@
     "moment": "^2.24.0"
   },
   "peerDependencies": {
-    "objection": ">=0.8"
+    "objection": ">=0.9.1"
   },
   "keywords": [
     "objection",
