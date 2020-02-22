@@ -27,47 +27,100 @@ module.exports = knex => {
 
 		Movie.knex(knex);
 
-		function test(query, pageSizeRange) {
-			const tasks = [];
-			for (let pageSize = pageSizeRange[0]; pageSize <= pageSizeRange[1]; pageSize++) {
-				let expected;
-				let perPage = pageSize;
+		function keysetKeys(query) {
+			const keys = [];
+			query.forEachOperation(/orderBy/, op => {
+				keys.push(op.args[3] || op.args[0]);
+			});
+			return keys;
+		}
 
-				let clone = query.clone().then(res => {
-					expected = res;
-					let q = query.clone().limit(perPage).cursorPage();
+		function mapResults(query, results) {
+			const keys = keysetKeys(query);
+			return results.map(r => {
+				return keys.map(k => r[k]).join(', ');
+			});
+		}
 
-					const offsets = [];
-					for (let offset = 0; offset < expected.length; offset += pageSize) {
-						offsets.push(offset);
-					}
+		// Test query on different page sizes by going from first to last page, and then back.
+		function test(query, pageSizeRange, pageSize = pageSizeRange[0]) {
+			let totalExpected;
+			let perPage = pageSize;
 
-					return offsets.reduce(
-						(q, offset) => q.then(({results, pageInfo}) => {
-							expect(pageInfo.total).to.equal(expected.length);
-							const end = Math.min(offset + perPage, expected.length);
-							const pageDisplay = `rows: ${offset} - ${end} / ${expected.length}`;
+			return query.clone().then(res => {
+				totalExpected = res;
+				let q = query.clone().limit(perPage).cursorPage();
 
-							expect(results, pageDisplay).to.deep.equal(expected.slice(offset, end));
-							expect(results.length).to.equal(end - offset);
+				const offsets = [];
+				for (let offset = 0; offset < totalExpected.length; offset += pageSize) {
+					offsets.push(offset);
+				}
 
-							return query.clone().limit(end - offset).cursorPage(pageInfo.next);
-						}),
-						q
-					);
+				q = offsets.reduce(
+					(q, offset) => q.then(({results, pageInfo}) => {
+						const end = Math.min(offset + perPage, totalExpected.length);
+
+						const expected = mapResults(query, results);
+						const actual = mapResults(query, totalExpected.slice(offset, end));
+						const pageDisplay = `rows: ${offset} - ${end} / ${totalExpected.length}`;
+
+						expect(results.length, pageDisplay).to.equal(end - offset);
+						expect(pageInfo.total, pageDisplay).to.equal(totalExpected.length);
+						expect(pageInfo.remaining, pageDisplay).to.equal(totalExpected.length - end);
+						expect(pageInfo.remainingAfter, pageDisplay).to.equal(totalExpected.length - end);
+						expect(pageInfo.remainingBefore, pageDisplay).to.equal(offset);
+						expect(pageInfo.hasMore, pageDisplay).to.equal(end < totalExpected.length);
+						expect(pageInfo.hasNext, pageDisplay).to.equal(end < totalExpected.length);
+						expect(pageInfo.hasPrevious, pageDisplay).to.equal(offset > 0);
+						expect(expected, pageDisplay).to.deep.equal(actual);
+
+						return query.clone().limit(end - offset).cursorPage(pageInfo.next);
+					}),
+					q
+				);
+
+				q = q.then(({results, pageInfo}) => {
+					expect(results).to.deep.equal([]);
+					return query.clone().limit(perPage).previousCursorPage(pageInfo.previous);
 				});
 
-				clone = clone
-					.then(({pageInfo}) => {
-						return query.clone().limit(5).cursorPage(pageInfo.next);
-					})
-					.then(({results}) => {
-						expect(results).to.deep.equal([]);
-					});
+				q = offsets.reduce(
+					(q, offset) => q.then(({results, pageInfo}) => {
+						const end = totalExpected.length - offset
+						offset = Math.max(0, end - perPage);
 
-				tasks.push(clone);
-			}
-			return Promise.all(tasks);
+						const expected = mapResults(query, results);
+						const actual = mapResults(query, totalExpected.slice(offset, end));
+						const pageDisplay = `rows: ${offset} - ${end} / ${totalExpected.length}`;
+
+						expect(results.length, pageDisplay).to.equal(end - offset);
+						expect(pageInfo.total, pageDisplay).to.equal(totalExpected.length);
+						expect(pageInfo.remaining, pageDisplay).to.equal(offset);
+						expect(pageInfo.remainingAfter, pageDisplay).to.equal(totalExpected.length - end);
+						expect(pageInfo.remainingBefore, pageDisplay).to.equal(offset);
+						expect(pageInfo.hasMore, pageDisplay).to.equal(offset > 0);
+						expect(pageInfo.hasNext, pageDisplay).to.equal(end < totalExpected.length);
+						expect(pageInfo.hasPrevious, pageDisplay).to.equal(offset > 0);
+						expect(expected, pageDisplay).to.deep.equal(actual);
+
+						return query.clone().limit(end - offset).previousCursorPage(pageInfo.previous);
+					}),
+					q
+				);
+
+				return q;
+			})
+			.then(({pageInfo}) => {
+				return query.clone().limit(5).previousCursorPage(pageInfo.previous);
+			})
+			.then(({results}) => {
+				expect(results).to.deep.equal([]);
+			})
+			.then(() => {
+				if (pageSize < pageSizeRange[1]) {
+					return test(query, pageSizeRange, pageSize + 1);
+				}
+			});
 		}
 
 		it('other where statements', () => {
