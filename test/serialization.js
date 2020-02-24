@@ -1,7 +1,5 @@
-'use strict';
-
-const expect = require('chai').expect;
-const {serializeCursor, deserializeCursor} = require('../lib/serialize');
+import {expect} from 'chai';
+import {serializeCursor, deserializeCursor} from '../lib/serialize';
 
 const SERIALIZE_ITEMS = [
 	{a: '<IMG SRC=&#0000106&#0000097&#0000118&#0000097&#0000115&#0000099&#0000114&#0000105&#0000112>'},

@@ -1,9 +1,7 @@
-'use strict';
-
-const expect = require('chai').expect;
-const {mapKeys, snakeCase, camelCase} = require('lodash');
-const {Model, ref} = require('objection');
-const {columnToProperty} = require('../lib/convert');
+import {expect} from 'chai';
+import {mapKeys, snakeCase, camelCase} from 'lodash';
+import {Model, ref} from 'objection';
+import {columnToProperty} from '../lib/convert';
 
 describe('conversion tests', () => {
 	describe('column to property', () => {

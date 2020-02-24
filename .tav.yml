@@ -1,12 +1,12 @@
 objection-v2:
   name: objection
   versions: ">=2.1.0"
-  commands: mocha
+  commands: mocha --require @babel/register
   peerDependencies:
     - lodash
 objection-previous:
   name: objection
   versions: 0.9.1 || 0.9.4 || 1.6.11
-  commands: mocha
+  commands: mocha --require @babel/register
   peerDependencies:
     - lodash
