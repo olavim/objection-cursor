@@ -118,7 +118,7 @@ module.exports = knex => {
 				.orderBy('id')
 				.where('title', 'like', 'movie-0%');
 
-			return test(query, [2, 5]);
+			return test(query, [10, 10]);
 		});
 
 		it('one order by col', () => {
