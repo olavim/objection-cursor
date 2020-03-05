@@ -1,77 +1,69 @@
-const expect = require('chai').expect;
-const Model = require('objection').Model;
-const cursorPagination = require('..');
+import {expect} from 'chai';
+import {Model} from 'objection';
+import cursorPagination from '..';
 
 module.exports = knex => {
 	describe('options tests', () => {
-		it('has total', () => {
+		it('has total', async () => {
 			class Movie extends cursorPagination({pageInfo: {total: true}})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
-				.cursorPage()
-				.then(({pageInfo}) => {
-					expect(pageInfo.total).to.equal(20);
-				});
+				.cursorPage();
+
+			expect(res.pageInfo.total).to.equal(20);
 		});
 
-		it('has remaining', () => {
+		it('has remaining', async () => {
 			class Movie extends cursorPagination({pageInfo: {remaining: true}})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
 				.cursorPage()
-				.limit(10)
-				.then(({pageInfo}) => {
-					expect(pageInfo.remaining).to.equal(10);
-				});
+				.limit(10);
+
+			expect(res.pageInfo.remaining).to.equal(10);
 		});
 
-		it('has remainingBefore', () => {
+		it('has remainingBefore', async () => {
 			class Movie extends cursorPagination({pageInfo: {remainingBefore: true}})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
 				.cursorPage()
-				.limit(10)
-				.then(({pageInfo}) => {
-					expect(pageInfo.remainingBefore).to.equal(0);
-				});
+				.limit(10);
+
+			expect(res.pageInfo.remainingBefore).to.equal(0);
 		});
 
-		it('has remainingAfter', () => {
+		it('has remainingAfter', async () => {
 			class Movie extends cursorPagination({pageInfo: {remainingAfter: true}})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
 				.cursorPage()
-				.limit(10)
-				.then(({pageInfo}) => {
-					expect(pageInfo.remainingAfter).to.equal(10);
-				});
+				.limit(10);
+
+			expect(res.pageInfo.remainingAfter).to.equal(10);
 		});
 
-		it('has hasMore', () => {
+		it('has hasMore', async () => {
 			class Movie extends cursorPagination({pageInfo: {hasMore: true}})(Model) {
 				static get tableName() {
 					return 'movies';
@@ -88,53 +80,47 @@ module.exports = knex => {
 				});
 		});
 
-		it('has hasNext', () => {
+		it('has hasNext', async () => {
 			class Movie extends cursorPagination({pageInfo: {hasNext: true}})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
 				.cursorPage()
-				.limit(10)
-				.then(({pageInfo}) => {
-					expect(pageInfo.hasNext).to.equal(true);
-				});
+				.limit(10);
+
+			expect(res.pageInfo.hasNext).to.equal(true);
 		});
 
-		it('has hasPrevious', () => {
+		it('has hasPrevious', async () => {
 			class Movie extends cursorPagination({pageInfo: {hasPrevious: true}})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
-				.cursorPage()
-				.then(({pageInfo}) => {
-					expect(pageInfo.hasPrevious).to.equal(false);
-				});
+				.cursorPage();
+
+			expect(res.pageInfo.hasPrevious).to.equal(false);
 		});
 
-		it('has limit', () => {
+		it('has limit', async () => {
 			class Movie extends cursorPagination({limit: 10})(Model) {
 				static get tableName() {
 					return 'movies';
 				}
 			}
 
-			return Movie
-				.query(knex)
+			const res = await Movie.query(knex)
 				.orderBy('id', 'asc')
-				.cursorPage()
-				.then(({results}) => {
-					expect(results.length).to.equal(10);
-				});
+				.cursorPage();
+
+			expect(res.results.length).to.equal(10);
 		});
 	});
 }

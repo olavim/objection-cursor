@@ -1,7 +1,7 @@
-const expect = require('chai').expect;
-const {Model, ref, raw} = require('objection');
-const {mapKeys, snakeCase, camelCase} = require('lodash');
-const cursorPagination = require('..');
+import {expect} from 'chai';
+import {Model, ref, raw} from 'objection';
+import {mapKeys, snakeCase, camelCase} from 'lodash';
+import cursorPagination from '..';
 
 module.exports = knex => {
 	describe('reference tests', () => {
@@ -42,38 +42,25 @@ module.exports = knex => {
 		MovieRef.knex(knex);
 		Movie.knex(knex);
 
-		it('order by ref', () => {
-			const query = Movie
-				.query()
+		it('order by ref', async () => {
+			const query = Movie.query()
 				.orderByCoalesce(ref('ref.data:none').castText(), 'desc', raw('?', ''))
 				.orderBy('movies.id', 'asc')
 				.joinEager('ref');
 
-			let expected;
+			const expected = await query.clone();
 
-			return query.clone()
-				.then(res => {
-					expected = res;
-					return query.clone().limit(5).cursorPage();
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(0, 5));
-					return query.clone().limit(5).cursorPage(res.pageInfo.next);
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(5, 10));
-					return query.clone().limit(10).cursorPage(res.pageInfo.next);
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(10, 20));
-					return query.clone().limit(10).previousCursorPage(res.pageInfo.previous);
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(0, 10));
-				});
+			let res = await query.clone().limit(5).cursorPage();
+			expect(res.results).to.deep.equal(expected.slice(0, 5));
+			res = await query.clone().limit(5).cursorPage(res.pageInfo.next);
+			expect(res.results).to.deep.equal(expected.slice(5, 10));
+			res = await query.clone().limit(10).cursorPage(res.pageInfo.next);
+			expect(res.results).to.deep.equal(expected.slice(10, 20));
+			res = await query.clone().limit(10).previousCursorPage(res.pageInfo.previous);
+			expect(res.results).to.deep.equal(expected.slice(0, 10));
 		});
 
-		it('order by ref with column mappers', () => {
+		it('order by ref with column mappers', async () => {
 			class CaseMovie extends Movie {
 				$formatDatabaseJson(json) {
 					const formatted = super.$formatDatabaseJson(json);
@@ -86,30 +73,21 @@ module.exports = knex => {
 				}
 			}
 
-			const query = CaseMovie
-				.query()
+			const query = CaseMovie.query()
 				.joinEager('ref')
 				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
 				.orderBy('movies.id', 'asc');
 
-			let expected;
+			const expected = await query.clone();
 
-			return query.clone()
-				.then(res => {
-					expected = res;
-					return query.clone().limit(10).cursorPage();
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(0, 10));
-					return query.clone().limit(10).cursorPage(res.pageInfo.next);
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(10, 20));
-					return query.clone().limit(10).previousCursorPage(res.pageInfo.previous);
-				})
-				.then(res => {
-					expect(res.results).to.deep.equal(expected.slice(0, 10));
-				});
+			let res = await query.clone().limit(5).cursorPage();
+			expect(res.results).to.deep.equal(expected.slice(0, 5));
+			res = await query.clone().limit(5).cursorPage(res.pageInfo.next);
+			expect(res.results).to.deep.equal(expected.slice(5, 10));
+			res = await query.clone().limit(10).cursorPage(res.pageInfo.next);
+			expect(res.results).to.deep.equal(expected.slice(10, 20));
+			res = await query.clone().limit(10).previousCursorPage(res.pageInfo.previous);
+			expect(res.results).to.deep.equal(expected.slice(0, 10));
 		});
 	});
 }
