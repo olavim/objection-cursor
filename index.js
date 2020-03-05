@@ -4,6 +4,8 @@ const cursorSupport = require('./lib/query-builder/CursorQueryBuilder');
 const cursorMixin = options => {
 	options = merge({
 		limit: 50,
+		results: true,
+		nodes: false,
 		pageInfo: {
 			total: false,
 			remaining: false,

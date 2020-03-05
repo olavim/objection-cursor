@@ -12,6 +12,8 @@ module.exports = knex => {
 	describe('cursor tests', () => {
 		const cursor = cursorPagination({
 			limit: 10,
+			results: true,
+			nodes: true,
 			pageInfo: {
 				total: true,
 				hasMore: true,
@@ -52,7 +54,7 @@ module.exports = knex => {
 
 			const pageSizes = [...Array(pageSizeRange[1] - pageSizeRange[0] + 1)].map((_, i) => i + pageSizeRange[0]);
 
-			return Promise.all(
+			await Promise.all(
 				pageSizes.map(async pageSize => {
 					let cursor;
 
@@ -109,6 +111,38 @@ module.exports = knex => {
 					expect(resStart.results).to.deep.equal([]);
 				})
 			);
+
+			await testEdges(query);
+		}
+
+		async function testEdges(query) {
+			const totalExpected = await query.clone();
+			const firstPage = await query.clone().cursorPage();
+			const numResults = firstPage.results.length;
+
+			for (let i = 0; i < numResults; i++) {
+				const page = await query.clone().cursorPage(firstPage.nodes[i].cursor);
+				expect(page.results).to.deep.equal(totalExpected.slice(i + 1, numResults + i + 1));
+				expect(page.pageInfo.total).to.equal(totalExpected.length);
+				expect(page.pageInfo.remaining).to.equal(totalExpected.length - page.results.length - i - 1);
+				expect(page.pageInfo.remainingAfter).to.equal(totalExpected.length - page.results.length - i - 1);
+				expect(page.pageInfo.remainingBefore).to.equal(i + 1);
+				expect(page.pageInfo.hasMore).to.equal(i + page.results.length + 1 < totalExpected.length);
+				expect(page.pageInfo.hasNext).to.equal(i + page.results.length + 1 < totalExpected.length);
+				expect(page.pageInfo.hasPrevious).to.equal(true);
+			}
+
+			for (let i = numResults - 1; i >= 0; i--) {
+				const page = await query.clone().previousCursorPage(firstPage.nodes[i].cursor);
+				expect(page.results).to.deep.equal(totalExpected.slice(0, i));
+				expect(page.pageInfo.total).to.equal(totalExpected.length);
+				expect(page.pageInfo.remaining).to.equal(0);
+				expect(page.pageInfo.remainingAfter).to.equal(totalExpected.length - i);
+				expect(page.pageInfo.remainingBefore).to.equal(0);
+				expect(page.pageInfo.hasMore).to.equal(false);
+				expect(page.pageInfo.hasNext).to.equal(numResults < totalExpected.length);
+				expect(page.pageInfo.hasPrevious).to.equal(false);
+			}
 		}
 
 		it('other where statements', () => {
@@ -118,7 +152,7 @@ module.exports = knex => {
 				.orderBy('id')
 				.where('title', 'like', 'movie-0%');
 
-			return test(query, [10, 10]);
+			return test(query, [2, 5]);
 		});
 
 		it('one order by col', () => {
