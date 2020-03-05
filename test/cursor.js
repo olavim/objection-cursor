@@ -61,13 +61,14 @@ module.exports = knex => {
 					for (let offset = 0; offset < totalExpected.length; offset += pageSize) {
 						const end = Math.min(offset + pageSize, totalExpected.length);
 
-						const {results, pageInfo} = await query.clone().limit(end - offset).cursorPage(cursor);
+						const {results, nodes, pageInfo} = await query.clone().limit(end - offset).cursorPage(cursor);
 
 						const expected = mapResults(query, results);
 						const actual = mapResults(query, totalExpected.slice(offset, end));
 						const pageDisplay = `rows: ${offset} - ${end} / ${totalExpected.length}`;
 
 						expect(results.length, pageDisplay).to.equal(end - offset);
+						expect(nodes.map(n => n.data)).to.deep.equal(results);
 						expect(pageInfo.total, pageDisplay).to.equal(totalExpected.length);
 						expect(pageInfo.remaining, pageDisplay).to.equal(totalExpected.length - end);
 						expect(pageInfo.remainingAfter, pageDisplay).to.equal(totalExpected.length - end);
@@ -88,13 +89,14 @@ module.exports = knex => {
 					for (let end = totalExpected.length; end >= 0; end -= pageSize) {
 						const offset = Math.max(0, end - pageSize);
 
-						const {results, pageInfo} = await query.clone().limit(end - offset).previousCursorPage(cursor);
+						const {results, nodes, pageInfo} = await query.clone().limit(end - offset).previousCursorPage(cursor);
 
 						const expected = mapResults(query, results);
 						const actual = mapResults(query, totalExpected.slice(offset, end));
 						const pageDisplay = `rows: ${offset} - ${end} / ${totalExpected.length}`;
 
 						expect(results.length, pageDisplay).to.equal(end - offset);
+						expect(nodes.map(n => n.data)).to.deep.equal(results);
 						expect(pageInfo.total, pageDisplay).to.equal(totalExpected.length);
 						expect(pageInfo.remaining, pageDisplay).to.equal(offset);
 						expect(pageInfo.remainingAfter, pageDisplay).to.equal(totalExpected.length - end);
@@ -123,6 +125,7 @@ module.exports = knex => {
 			for (let i = 0; i < numResults; i++) {
 				const page = await query.clone().cursorPage(firstPage.nodes[i].cursor);
 				expect(page.results).to.deep.equal(totalExpected.slice(i + 1, numResults + i + 1));
+				expect(page.nodes.map(n => n.data)).to.deep.equal(page.results);
 				expect(page.pageInfo.total).to.equal(totalExpected.length);
 				expect(page.pageInfo.remaining).to.equal(totalExpected.length - page.results.length - i - 1);
 				expect(page.pageInfo.remainingAfter).to.equal(totalExpected.length - page.results.length - i - 1);
@@ -135,6 +138,7 @@ module.exports = knex => {
 			for (let i = numResults - 1; i >= 0; i--) {
 				const page = await query.clone().previousCursorPage(firstPage.nodes[i].cursor);
 				expect(page.results).to.deep.equal(totalExpected.slice(0, i));
+				expect(page.nodes.map(n => n.data)).to.deep.equal(page.results);
 				expect(page.pageInfo.total).to.equal(totalExpected.length);
 				expect(page.pageInfo.remaining).to.equal(0);
 				expect(page.pageInfo.remainingAfter).to.equal(totalExpected.length - i);
