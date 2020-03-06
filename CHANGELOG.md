@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0-alpha.2"></a>
+# [1.2.0-alpha.2](https://github.com/olavim/objection-cursor/compare/v1.2.0-alpha.1...v1.2.0-alpha.2) (2020-03-06)
+
+
+### Bug Fixes
+
+* call native orderBy properly ([b3840a9](https://github.com/olavim/objection-cursor/commit/b3840a9))
+
+
+
 <a name="1.2.0-alpha.1"></a>
 # [1.2.0-alpha.1](https://github.com/olavim/objection-cursor/compare/v1.2.0-alpha.0...v1.2.0-alpha.1) (2020-03-05)
 
