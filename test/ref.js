@@ -35,7 +35,7 @@ module.exports = knex => {
 							to: 'movie_refs.movie_id'
 						}
 					}
-				}
+				};
 			}
 		}
 
@@ -64,12 +64,12 @@ module.exports = knex => {
 			class CaseMovie extends Movie {
 				$formatDatabaseJson(json) {
 					const formatted = super.$formatDatabaseJson(json);
-					return mapKeys(formatted, (val, key) => snakeCase(key));
+					return mapKeys(formatted, (_val, key) => snakeCase(key));
 				}
 
 				$parseDatabaseJson(json) {
 					const parsed = super.$parseDatabaseJson(json);
-					return mapKeys(parsed, (val, key) => camelCase(key));
+					return mapKeys(parsed, (_val, key) => camelCase(key));
 				}
 			}
 
@@ -90,4 +90,4 @@ module.exports = knex => {
 			expect(res.results).to.deep.equal(expected.slice(0, 10));
 		});
 	});
-}
+};

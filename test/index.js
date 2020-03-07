@@ -1,10 +1,8 @@
-'use strict';
-
-const Knex = require('knex');
-const moment = require('moment');
-const cursorTests = require('./cursor');
-const optionsTests = require('./options');
-const referenceTests = require('./ref');
+import Knex from 'knex';
+import moment from 'moment';
+import queryBuilderTests from './query-builder';
+import optionsTests from './options';
+import referenceTests from './ref';
 
 function padStart(str, targetLength, padString) {
 	let padded = str;
@@ -111,7 +109,7 @@ describe('database tests', () => {
 					return knex('movies').insert(movies);
 				});
 
-				cursorTests(knex);
+				queryBuilderTests(knex);
 				optionsTests(knex);
 
 				if (config.client === 'pg') {

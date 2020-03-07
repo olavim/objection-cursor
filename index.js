@@ -24,8 +24,8 @@ const cursorMixin = options => {
 				return CursorQueryBuilder;
 			}
 		};
-	}
-}
+	};
+};
 
 module.exports = (options = {}) => {
 	if (typeof options === 'function') {

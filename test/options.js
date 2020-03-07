@@ -123,4 +123,4 @@ module.exports = knex => {
 			expect(res.results.length).to.equal(10);
 		});
 	});
-}
+};

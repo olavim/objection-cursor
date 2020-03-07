@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha --require @babel/register",
+    "test:pg": "CLIENT=pg mocha --require @babel/register",
     "test:tav": "tav",
     "lint": "eslint --fix \"index.js\" \"lib/**/*.js\" \"test/**/*.js\"",
     "release": "standard-version",
