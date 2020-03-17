@@ -47,22 +47,55 @@ const query = Movie.query()
   .orderBy('author')
   .limit(10);
 
-  query.clone().cursorPage()
-    .then(result => {
-      // Rows 1-10
-      console.log(result.results);
-      return query.clone().cursorPage(result.pageInfo.next);
-    })
-    .then(result => {
-      // Rows 11-20
-      console.log(result.results);
-      return query.clone().previousCursorPage(result.pageInfo.previous);
-    })
-    .then(result => {
-      // Rows 1-10
-      console.log(result.results);
-    });
+query.clone().cursorPage()
+  .then(result => {
+    // Rows 1-10
+    console.log(result.results);
+    return query.clone().cursorPage(result.pageInfo.next);
+  })
+  .then(result => {
+    // Rows 11-20
+    console.log(result.results);
+    return query.clone().previousCursorPage(result.pageInfo.previous);
+  })
+  .then(result => {
+    // Rows 1-10
+    console.log(result.results);
+  });
+```
 
+You have the option of returning page results as plain database row objects (as in above example), or _nodes_ where each result is associated with a cursor of its own, or both.
+
+```js
+const Model = require('objection').Model;
+const cursorMixin = require('objection-cursor');
+
+// Nodes are not returned by default, so you need to enable them
+const cursor = cursorMixin({nodes: true});
+
+class Movie extends cursor(Model) {
+  ...
+}
+
+const query = Movie.query()
+  .orderBy('title')
+  .orderBy('author')
+  .limit(10);
+
+query.clone().cursorPage()
+  .then(result => {
+    // Rows 1-10 with associated cursors
+    console.log(result.nodes);
+
+    // Let's take the second node
+    const node = result.nodes[1];
+
+    // result.nodes[1].data is equivalent to result.results[1]
+    console.log(result.nodes[1].data);
+
+    // You can get results before/after this row by using node.cursor
+    return query.clone().cursorPage(node.cursor);
+  });
 ```
 
 Passing a [reference builder](https://vincit.github.io/objection.js/#referencebuilder) to `orderBy` is supported. [Raw queries](https://vincit.github.io/objection.js/#raw-queries), however, are not.
@@ -208,7 +241,8 @@ class Movie extends cursorMixin(Model) {
 
 ```js
 {
-  results: // Resulted rows.
+  results: // Page results
+  nodes: // Page results where each result also has an associated cursor
   pageInfo: {
     next: // Provide this in the next `cursorPage` call to fetch items after current results.
     previous: // Provide this in the next `previousCursorPage` call to fetch items before current results.
@@ -336,6 +370,8 @@ Values shown are defaults.
 ```js
 {
   limit: 50, // Default limit in all queries
+  results: true, // Page results
+  nodes: true, // Page results where each result also has an associated cursor
   pageInfo: {
     // When true, these values will be added to `pageInfo` in query response
     total: false, // Total amount of rows
