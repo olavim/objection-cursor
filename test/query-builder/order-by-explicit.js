@@ -145,12 +145,7 @@ export default knex => {
 				.orderByExplicit(raw(`COALESCE(??, '')`, 'title'), 'asc')
 				.orderBy('id');
 
-			const expected = await query.clone();
-
-			let res = await query.clone().cursorPage();
-			res = await query.clone().cursorPage(res.pageInfo.next);
-
-			// return testPagination(query, [2, 5]);
+			return testPagination(query, [2, 5]);
 		});
 
 		if (knex.client.config.client === 'pg') {
