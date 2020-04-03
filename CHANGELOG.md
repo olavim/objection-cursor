@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.2"></a>
+## [1.2.2](https://github.com/olavim/objection-cursor/compare/v1.2.1...v1.2.2) (2020-04-03)
+
+
+### Bug Fixes
+
+* **serializer:** handle custom formatters properly ([8cb45d6](https://github.com/olavim/objection-cursor/commit/8cb45d6))
+
+
+
 <a name="1.2.1"></a>
 ## [1.2.1](https://github.com/olavim/objection-cursor/compare/v1.2.0...v1.2.1) (2020-03-17)
 
