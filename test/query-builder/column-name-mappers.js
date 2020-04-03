@@ -1,6 +1,6 @@
 import {Model} from 'objection';
 import {expect} from 'chai';
-import {mapKeys, camelCase} from 'lodash';
+import {mapKeys, camelCase, snakeCase} from 'lodash';
 import cursorPagination from '../../';
 import testPagination from './lib/pagination';
 
@@ -35,6 +35,9 @@ export default knex => {
 					return {
 						parse(obj) {
 							return mapKeys(obj, (_val, key) => camelCase(key));
+						},
+						format(obj) {
+							return mapKeys(obj, (_val, key) => snakeCase(key));
 						}
 					};
 				}
@@ -62,6 +65,9 @@ export default knex => {
 					return {
 						parse(obj) {
 							return mapKeys(obj, (_val, key) => `test_${key}`);
+						},
+						format(obj) {
+							return mapKeys(obj, (_val, key) => key.substring(5));
 						}
 					};
 				}

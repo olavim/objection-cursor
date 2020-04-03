@@ -108,6 +108,51 @@ export default knex => {
 			return testPagination(query, [2, 5]);
 		});
 
+		it('column formatter', async () => {
+			class Title {
+				constructor(title) {
+					this.title = title;
+				}
+
+				toString() {
+					return this.title;
+				}
+			}
+
+			class SuperMovie extends Movie {
+				$parseDatabaseJson(json) {
+					json = super.$parseDatabaseJson(json);
+
+					if (json.title) {
+						json.title = new Title(json.title);
+					}
+
+					return json;
+				}
+
+				$formatDatabaseJson(json) {
+					json = super.$formatDatabaseJson(json);
+
+					if (json.title instanceof Title) {
+						json.title = json.title.toString();
+					}
+
+					return json;
+				}
+			}
+
+			const query = SuperMovie.query()
+				.orderByExplicit(raw(`COALESCE(??, '')`, 'title'), 'asc')
+				.orderBy('id');
+
+			const expected = await query.clone();
+
+			let res = await query.clone().cursorPage();
+			res = await query.clone().cursorPage(res.pageInfo.next);
+
+			// return testPagination(query, [2, 5]);
+		});
+
 		if (knex.client.config.client === 'pg') {
 			describe('PostgreSQL specific', () => {
 				it('raw case expressions', () => {
