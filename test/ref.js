@@ -42,7 +42,22 @@ module.exports = knex => {
 		MovieRef.knex(knex);
 		Movie.knex(knex);
 
-		it('order by ref', async () => {
+		it('order by ref - 1 column', async () => {
+			const query = Movie.query().orderBy(ref('movies.id'), 'asc');
+
+			const expected = await query.clone();
+
+			let res = await query.clone().limit(5).cursorPage();
+			expect(res.results).to.deep.equal(expected.slice(0, 5));
+			res = await query.clone().limit(5).cursorPage(res.pageInfo.next);
+			expect(res.results).to.deep.equal(expected.slice(5, 10));
+			res = await query.clone().limit(10).cursorPage(res.pageInfo.next);
+			expect(res.results).to.deep.equal(expected.slice(10, 20));
+			res = await query.clone().limit(10).previousCursorPage(res.pageInfo.previous);
+			expect(res.results).to.deep.equal(expected.slice(0, 10));
+		});
+
+		it('order by ref - 2 columns', async () => {
 			const query = Movie.query()
 				.orderByCoalesce(ref('ref.data:none').castText(), 'desc', raw('?', ''))
 				.orderBy('movies.id', 'asc')
