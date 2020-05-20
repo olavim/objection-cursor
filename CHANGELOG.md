@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.3"></a>
+## [1.2.3](https://github.com/olavim/objection-cursor/compare/v1.2.2...v1.2.3) (2020-05-20)
+
+
+### Bug Fixes
+
+* prop access for schema+table+col refs ([ad5dfa5](https://github.com/olavim/objection-cursor/commit/ad5dfa5))
+
+
+
 <a name="1.2.2"></a>
 ## [1.2.2](https://github.com/olavim/objection-cursor/compare/v1.2.1...v1.2.2) (2020-04-03)
 
