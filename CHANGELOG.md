@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.4"></a>
+## [1.2.4](https://github.com/olavim/objection-cursor/compare/v1.2.3...v1.2.4) (2020-07-02)
+
+
+### Bug Fixes
+
+* Dont use `mergeContext` on objection v2, to avoid deprecationg warning (fixes olavim/objection-cursor[#21](https://github.com/olavim/objection-cursor/issues/21)) ([883674f](https://github.com/olavim/objection-cursor/commit/883674f))
+
+
+
 <a name="1.2.3"></a>
 ## [1.2.3](https://github.com/olavim/objection-cursor/compare/v1.2.2...v1.2.3) (2020-05-20)
 
