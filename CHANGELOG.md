@@ -1,6 +1,13 @@
-# Change Log
+# Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+### [1.2.5](https://github.com/olavim/objection-cursor/compare/v1.2.4...v1.2.5) (2022-01-19)
+
+
+### Bug Fixes
+
+* correctly build keyset for falsy values ([dbb4b15](https://github.com/olavim/objection-cursor/commit/dbb4b15d4dcfd516bc47a79619f86b3863fb7e3c))
 
 <a name="1.2.4"></a>
 ## [1.2.4](https://github.com/olavim/objection-cursor/compare/v1.2.3...v1.2.4) (2020-07-02)
