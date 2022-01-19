@@ -1,6 +1,5 @@
 import {Model} from 'objection';
 import {expect} from 'chai';
-import {mapKeys, camelCase} from 'lodash';
 import cursorPagination from '../../';
 import testPagination from './lib/pagination';
 
