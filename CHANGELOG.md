@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.6-alpha.0](https://github.com/olavim/objection-cursor/compare/v1.2.5...v1.2.6-alpha.0) (2022-05-24)
+
+
+### Bug Fixes
+
+* objection v3 and knex v1 compatibility ([53004cb](https://github.com/olavim/objection-cursor/commit/53004cbd7fb5d3aa65e663e098cd1553fcc3db08))
+
 ### [1.2.5](https://github.com/olavim/objection-cursor/compare/v1.2.4...v1.2.5) (2022-01-19)
 
 
