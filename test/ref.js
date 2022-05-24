@@ -58,10 +58,15 @@ module.exports = knex => {
 		});
 
 		it('order by ref - 2 columns', async () => {
-			const query = Movie.query()
+			let query = Movie.query()
 				.orderByCoalesce(ref('ref.data:none').castText(), 'desc', raw('?', ''))
-				.orderBy('movies.id', 'asc')
-				.joinEager('ref');
+				.orderBy('movies.id', 'asc');
+			
+			if (query.withGraphJoined) {
+				query = query.withGraphJoined('ref');
+			} else {
+				query = query.joinEager('ref');
+			}
 
 			const expected = await query.clone();
 
@@ -88,10 +93,15 @@ module.exports = knex => {
 				}
 			}
 
-			const query = CaseMovie.query()
-				.joinEager('ref')
+			let query = CaseMovie.query()
 				.orderByCoalesce(ref('ref.data:title').castText(), 'desc')
 				.orderBy('movies.id', 'asc');
+
+			if (query.withGraphJoined) {
+				query = query.withGraphJoined('ref');
+			} else {
+				query = query.joinEager('ref');
+			}
 
 			const expected = await query.clone();
 
